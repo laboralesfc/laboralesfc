@@ -93,7 +93,7 @@
   .jugadores { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 1rem; }
   .jugador { overflow: hidden; position: relative; }
   .jugador .foto { aspect-ratio: 4/3; background: linear-gradient(160deg, var(--tarjeta-2), var(--fondo-2)); display: grid; place-items: center; position: relative; }
-  .jugador .foto img { width: 100%; height: 100%; object-fit: cover; }
+  .jugador .foto img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
   .jugador .iniciales { font-family: "Anton", Impact, sans-serif; font-size: 2.6rem; color: var(--texto-suave); opacity: .6; }
   .jugador .numero { position: absolute; top: .5rem; left: .7rem; font-family: "Anton", Impact, sans-serif; font-size: 2rem; color: var(--acento); text-shadow: 0 2px 8px rgba(0,0,0,.4); }
   .jugador .cuerpo { padding: .8rem 1rem 1rem; }
@@ -151,6 +151,7 @@
   .barra div { width: 90px; height: 8px; border-radius: 99px; background: var(--tarjeta-2); overflow: hidden; }
   .barra i { display: block; height: 100%; background: var(--verde); border-radius: 99px; }
   .col-sesion { text-align: center; white-space: nowrap; }
+  .txt-corto { display: none; }
   .leyenda { font-size: .85rem; color: var(--texto-suave); margin-top: .75rem; display: flex; gap: 1rem; align-items: center; }
   .leyenda .punto { vertical-align: -2px; margin-right: .3rem; }
 
@@ -231,7 +232,10 @@
     th { white-space: nowrap; }
     .jugador .foto:not(:has(img)) { aspect-ratio: 16/9; }
     .jugador .iniciales { font-size: 2rem; }
-    .barra div { width: 44px; }
+    /* En móvil la tabla de asistencia muestra solo las 3 últimas sesiones y el % sin barra, para que quepa sin deslizar */
+    .barra div, .sesion-vieja, .txt-largo { display: none; }
+    .txt-corto { display: inline; }
+    th.col-sesion, td.col-sesion { padding-left: .3rem; padding-right: .3rem; }
     .galeria { columns: 2; column-gap: .6rem; }
     .media { margin-bottom: .6rem; }
     .media .mini img, .media .mini video { max-height: 340px; }
@@ -361,13 +365,13 @@ const jugadores = [
   // Porteros: además, "encajados" (goles encajados) y "penaltis" (penaltis parados)
   { id: "ruben",       dorsal: 1,    nombre: "Rubén",          posicion: "Portero",           partidos: 0, goles: 0, asistencias: 0, encajados: 0, penaltis: 0 },
   { id: "manuel",      dorsal: 1,    nombre: "Manuel",         posicion: "Portero",           partidos: 0, goles: 0, asistencias: 0, encajados: 0, penaltis: 0 },
-  { id: "antonio-por", dorsal: 1,    nombre: "Antonio",        posicion: "Portero",           partidos: 0, goles: 0, asistencias: 0, encajados: 0, penaltis: 0 },
-  { id: "adolfo",      dorsal: 1,    nombre: "Adolfo",         posicion: "Portero",           partidos: 0, goles: 0, asistencias: 0, encajados: 0, penaltis: 0 },
-  { id: "sergio",      dorsal: 5,    nombre: "Sergio",         posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0 },
+  { id: "antonio-por", dorsal: 1,    nombre: "Antonio",        posicion: "Portero",           partidos: 0, goles: 0, asistencias: 0, encajados: 0, penaltis: 0, foto: "fotos/antonio-por.jpg" },
+  { id: "adolfo",      dorsal: 1,    nombre: "Adolfo",         posicion: "Portero",           partidos: 0, goles: 0, asistencias: 0, encajados: 0, penaltis: 0, foto: "fotos/adolfo.jpg" },
+  { id: "sergio",      dorsal: 5,    nombre: "Sergio",         posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0, foto: "fotos/sergio.jpg" },
   { id: "carlos",      dorsal: 2,    nombre: "Carlos Martín",  posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0 },
-  { id: "alejandro",   dorsal: 17,   nombre: "Alejandro Gil",  posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0 },
-  { id: "gaizka",      dorsal: 18,   nombre: "Gaizka",         posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0 },
-  { id: "emi",         dorsal: 4,    nombre: "Emi",            posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0 },
+  { id: "alejandro",   dorsal: 17,   nombre: "Alejandro Gil",  posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0, foto: "fotos/alejandro.jpg" },
+  { id: "gaizka",      dorsal: 18,   nombre: "Gaizka",         posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0, foto: "fotos/gaizka.jpg" },
+  { id: "emi",         dorsal: 4,    nombre: "Emi",            posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0, foto: "fotos/emi.jpg" },
   { id: "d-escalona",  dorsal: 19,   nombre: "D. Escalona",    posicion: "Lateral derecho",   partidos: 0, goles: 0, asistencias: 0 },
   { id: "david",       dorsal: 80,   nombre: "David Coca",     posicion: "Lateral derecho",   partidos: 0, goles: 0, asistencias: 0 },
   { id: "a-escalona",  dorsal: 3,    nombre: "A. Escalona",    posicion: "Lateral izquierdo", partidos: 0, goles: 0, asistencias: 0 },
@@ -376,17 +380,17 @@ const jugadores = [
   { id: "samu",        dorsal: 6,    nombre: "Samu",           posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
   { id: "antonio-mc",  dorsal: 22,   nombre: "Antonio",        posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
   { id: "tito",        dorsal: 11,   nombre: "Tito",           posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
-  { id: "lorenzo",     dorsal: 8,    nombre: "Lorenzo",        posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
-  { id: "francisco",   dorsal: 14,   nombre: "Francisco Caro", posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
-  { id: "alonso",      dorsal: 12,   nombre: "Alonso",         posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
-  { id: "dennis",      dorsal: null, nombre: "Dennis",         posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
-  { id: "abraham",     dorsal: 97,   nombre: "Abraham",        posicion: "Extremo",           partidos: 0, goles: 0, asistencias: 0 },
+  { id: "lorenzo",     dorsal: 8,    nombre: "Lorenzo",        posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0, foto: "fotos/lorenzo.jpg" },
+  { id: "francisco",   dorsal: 14,   nombre: "Francisco Caro", posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0, foto: "fotos/francisco.jpg" },
+  { id: "alonso",      dorsal: 12,   nombre: "Alonso",         posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0, foto: "fotos/alonso.jpg" },
+  { id: "dennis",      dorsal: null, nombre: "Dennis",         posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0, foto: "fotos/dennis.jpg" },
+  { id: "abraham",     dorsal: 97,   nombre: "Abraham",        posicion: "Extremo",           partidos: 0, goles: 0, asistencias: 0, foto: "fotos/abraham.jpg" },
   { id: "padilla",     dorsal: 77,   nombre: "A. Padilla",     posicion: "Extremo",           partidos: 0, goles: 0, asistencias: 0 },
   { id: "alexis",      dorsal: 9,    nombre: "Alexis",         posicion: "Extremo",           partidos: 0, goles: 0, asistencias: 0 },
-  { id: "alex-g",      dorsal: 7,    nombre: "Alex G.",        posicion: "Extremo",           partidos: 0, goles: 0, asistencias: 0 },
-  { id: "pau",         dorsal: 21,   nombre: "Pau Sélles",     posicion: "Extremo",           partidos: 0, goles: 0, asistencias: 0 },
-  { id: "crispin",     dorsal: 10,   nombre: "Crispín",        posicion: "Delantero centro",  partidos: 0, goles: 0, asistencias: 0 },
-  { id: "zander",      dorsal: 15,   nombre: "Zander",         posicion: "Delantero centro",  partidos: 0, goles: 0, asistencias: 0 },
+  { id: "alex-g",      dorsal: 7,    nombre: "Alex G.",        posicion: "Extremo",           partidos: 0, goles: 0, asistencias: 0, foto: "fotos/alex-g.jpg" },
+  { id: "pau",         dorsal: 21,   nombre: "Pau Sélles",     posicion: "Extremo",           partidos: 0, goles: 0, asistencias: 0, foto: "fotos/pau.jpg" },
+  { id: "crispin",     dorsal: 10,   nombre: "Crispín",        posicion: "Delantero centro",  partidos: 0, goles: 0, asistencias: 0, foto: "fotos/crispin.jpg" },
+  { id: "zander",      dorsal: 15,   nombre: "Zander",         posicion: "Delantero centro",  partidos: 0, goles: 0, asistencias: 0, foto: "fotos/zander.jpg" },
 ];
 
 // Cuerpo técnico ("foto" opcional, igual que en jugadores)
@@ -412,6 +416,8 @@ const entrenoSemanal = { dia: 4, hora: "13:00", lugar: "Cartuja" };
 const entrenamientos = [
   { fecha: "2026-10-22", asistentes: ["ruben", "manuel", "antonio-por", "adolfo", "sergio", "carlos", "alejandro", "emi",
     "d-escalona", "a-escalona", "manuel-g", "lorenzo", "alonso", "dennis", "tito", "francisco", "abraham", "padilla", "alexis", "pau", "crispin", "zander"] },
+  { fecha: "2026-10-29", asistentes: ["manuel", "adolfo", "antonio-por", "sergio", "carlos", "alejandro", "gaizka", "emi",
+    "lorenzo", "alonso", "francisco", "dennis", "abraham", "pau", "alex-g", "crispin", "zander"] },
 ];
 
 // Convocatoria del próximo partido ("partido" = fecha del partido; "jugadores" = ids de los convocados).
@@ -612,13 +618,15 @@ function pintarEntrenamientos() {
     <div class="tarjeta"><span>Último entrenamiento</span><strong>${ultimo ? ultimo.asistentes.length + " jugadores" : "—"}</strong><span>${ultimo ? fechaLarga(ultimo.fecha) : ""}</span></div>`;
 
   const lista = [...jugadores].sort((a, b) => pct(b) - pct(a) || numDorsal(a) - numDorsal(b));
+  // Las sesiones anteriores a las 3 últimas se ocultan en móvil
+  const claseSesion = i => "col-sesion" + (i < ultimas.length - 3 ? " sesion-vieja" : "");
   $("tabla-entrenos").innerHTML = `
-    <thead><tr><th class="num">#</th><th>Jugador</th>${ultimas.map(e => `<th class="col-sesion">${fechaCorta(e.fecha)}</th>`).join("")}<th class="num">Asistencia</th></tr></thead>
+    <thead><tr><th class="num">#</th><th>Jugador</th>${ultimas.map((e, i) => `<th class="${claseSesion(i)}">${fechaCorta(e.fecha)}</th>`).join("")}<th class="num"><span class="txt-largo">Asistencia</span><span class="txt-corto">%</span></th></tr></thead>
     <tbody>${lista.map(j => `<tr>
       <td class="num dorsal">${verDorsal(j)}</td><td><b>${j.nombre}</b></td>
-      ${ultimas.map(e => {
+      ${ultimas.map((e, i) => {
         const si = e.asistentes.includes(j.id);
-        return `<td class="col-sesion"><i class="punto ${si ? "si" : ""}" title="${si ? "Asistió" : "No asistió"}"></i></td>`;
+        return `<td class="${claseSesion(i)}"><i class="punto ${si ? "si" : ""}" title="${si ? "Asistió" : "No asistió"}"></i></td>`;
       }).join("")}
       <td class="num"><div class="barra"><div><i style="width:${pct(j)}%"></i></div><b>${pct(j)}%</b></div></td>
     </tr>`).join("")}</tbody>`;
