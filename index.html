@@ -230,12 +230,19 @@
     /* En móvil la tabla de goleadores prescinde de la posición para que quepan goles y asistencias */
     .col-posicion, .col-media { display: none; }
     th { white-space: nowrap; }
-    .jugador .foto:not(:has(img)) { aspect-ratio: 16/9; }
     .jugador .iniciales { font-size: 2rem; }
     /* En móvil la tabla de asistencia muestra solo las 3 últimas sesiones y el % sin barra, para que quepa sin deslizar */
     .barra div, .sesion-vieja, .txt-largo { display: none; }
     .txt-corto { display: inline; }
     th.col-sesion, td.col-sesion { padding-left: .3rem; padding-right: .3rem; }
+    #tabla-entrenos th, #tabla-entrenos td { padding-left: .35rem; padding-right: .35rem; }
+    /* Convocatoria en dos columnas compactas para no hacer una lista tan larga */
+    .conv-lista { grid-template-columns: 1fr 1fr; gap: .4rem; }
+    .conv-jugador { gap: .45rem; padding: .45rem .5rem; min-width: 0; }
+    .conv-jugador .dorsal { min-width: 22px; font-size: 1rem; }
+    .conv-jugador b { display: block; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .conv-jugador > div { min-width: 0; }
+    .conv-jugador small { font-size: .7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .galeria { columns: 2; column-gap: .6rem; }
     .media { margin-bottom: .6rem; }
     .media .mini img, .media .mini video { max-height: 340px; }
@@ -372,11 +379,11 @@ const jugadores = [
   { id: "alejandro",   dorsal: 17,   nombre: "Alejandro Gil",  posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0, foto: "fotos/alejandro.jpg" },
   { id: "gaizka",      dorsal: 18,   nombre: "Gaizka",         posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0, foto: "fotos/gaizka.jpg" },
   { id: "emi",         dorsal: 4,    nombre: "Emi",            posicion: "Defensa central",   partidos: 0, goles: 0, asistencias: 0, foto: "fotos/emi.jpg" },
-  { id: "d-escalona",  dorsal: 19,   nombre: "D. Escalona",    posicion: "Lateral derecho",   partidos: 0, goles: 0, asistencias: 0 },
-  { id: "david",       dorsal: 80,   nombre: "David Coca",     posicion: "Lateral derecho",   partidos: 0, goles: 0, asistencias: 0 },
-  { id: "a-escalona",  dorsal: 3,    nombre: "A. Escalona",    posicion: "Lateral izquierdo", partidos: 0, goles: 0, asistencias: 0 },
+  { id: "d-escalona",  dorsal: 19,   nombre: "D. Escalona",    posicion: "Lateral derecho",   partidos: 0, goles: 0, asistencias: 0, foto: "fotos/d-escalona.jpg" },
+  { id: "david",       dorsal: 80,   nombre: "David Coca",     posicion: "Lateral derecho",   partidos: 0, goles: 0, asistencias: 0, foto: "fotos/david.jpg" },
+  { id: "a-escalona",  dorsal: 3,    nombre: "A. Escalona",    posicion: "Lateral izquierdo", partidos: 0, goles: 0, asistencias: 0, foto: "fotos/a-escalona.jpg" },
   { id: "nico",        dorsal: 20,   nombre: "Nico",           posicion: "Lateral izquierdo", partidos: 0, goles: 0, asistencias: 0 },
-  { id: "manuel-g",    dorsal: 30,   nombre: "Manuel García",  posicion: "Lateral izquierdo", partidos: 0, goles: 0, asistencias: 0 },
+  { id: "manuel-g",    dorsal: 30,   nombre: "Manuel García",  posicion: "Lateral izquierdo", partidos: 0, goles: 0, asistencias: 0, foto: "fotos/manuel-g.jpg" },
   { id: "samu",        dorsal: 6,    nombre: "Samu",           posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
   { id: "antonio-mc",  dorsal: 22,   nombre: "Antonio",        posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
   { id: "tito",        dorsal: 11,   nombre: "Tito",           posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
@@ -403,9 +410,13 @@ const cuerpoTecnico = [
 ];
 
 // Una línea por partido. Si aún no se ha jugado, deja "nuestros" y "suyos" en null. Ejemplo:
-// { fecha: "2026-11-05", hora: "18:30", rival: "Nombre rival", local: true, campo: "Campo Municipal", nuestros: null, suyos: null },
+// { fecha: "2026-11-05", hora: "18:30", rival: "Nombre rival", competicion: "Trofeo Rector", local: true, campo: "Campo Municipal", nuestros: null, suyos: null },
 const partidos = [
-  { fecha: "2026-11-06", hora: "21:00", rival: "Residencia Universitaria Carlos V (RESA)", local: true, campo: "Cartuja", nuestros: null, suyos: null },
+  { fecha: "2026-11-06", hora: "22:00", rival: "Residencia Universitaria Carlos V (RESA)", competicion: "Amistoso", local: true, campo: "Cartuja", nuestros: null, suyos: null },
+  { fecha: "2026-11-12", hora: "17:15", rival: "Facultad de Derecho", competicion: "Trofeo Rector", local: true, campo: "Cartuja", nuestros: null, suyos: null },
+  { fecha: "2026-11-25", hora: "17:15", rival: "Facultad de Políticas", competicion: "Trofeo Rector", local: true, campo: "Cartuja", nuestros: null, suyos: null },
+  { fecha: "2026-12-03", hora: "15:30", rival: "CM Inmaculada", competicion: "Trofeo Rector", local: true, campo: "Cartuja", nuestros: null, suyos: null },
+  { fecha: "2027-02-22", hora: "17:15", rival: "Trabajo Social", competicion: "Trofeo Rector", local: true, campo: "Cartuja", nuestros: null, suyos: null },
 ];
 
 // Entrenamiento fijo semanal (dia: 1 = lunes … 4 = jueves … 7 = domingo). El próximo se calcula solo.
@@ -418,13 +429,18 @@ const entrenamientos = [
     "d-escalona", "a-escalona", "manuel-g", "lorenzo", "alonso", "dennis", "tito", "francisco", "abraham", "padilla", "alexis", "pau", "crispin", "zander"] },
   { fecha: "2026-10-29", asistentes: ["manuel", "adolfo", "antonio-por", "sergio", "carlos", "alejandro", "gaizka", "emi",
     "lorenzo", "alonso", "francisco", "dennis", "abraham", "pau", "alex-g", "crispin", "zander"] },
+  { fecha: "2026-11-05", asistentes: ["ruben", "adolfo", "emi", "alejandro", "carlos", "d-escalona", "david",
+    "a-escalona", "nico", "manuel-g", "lorenzo", "antonio-mc", "francisco", "alonso", "abraham", "alex-g", "dennis", "crispin"] },
 ];
 
 // Convocatoria del próximo partido ("partido" = fecha del partido; "jugadores" = ids de los convocados).
 const convocatoria = {
   partido: "2026-11-06",
-  citacion: "18:00 en el vestuario",
-  jugadores: [],
+  citacion: "21:00 en el estadio · 21:15 en el vestuario (obligatorio)",
+  jugadores: ["ruben", "manuel", "alejandro", "gaizka", "emi", "david", "nico", "manuel-g",
+    "samu", "antonio-mc", "lorenzo", "francisco", "alonso", "d-escalona", "a-escalona", "dennis", "crispin", "zander"],
+  // Opcional: posición distinta a la habitual solo para este partido
+  posiciones: {},
 };
 
 // Galería: tipo "foto", "video" (archivo .mp4) o "youtube" (enlace de YouTube).
@@ -475,7 +491,7 @@ function pintarPortada() {
   if (!p) { $("proximo").innerHTML = `<span class="etiqueta">Próximo partido</span><p class="vacio">No hay partidos programados.</p>`; return; }
   const [casa, fuera] = p.local ? ["Laborales FC", p.rival] : [p.rival, "Laborales FC"];
   $("proximo").innerHTML = `
-    <span class="etiqueta">Próximo partido</span>
+    <span class="etiqueta">Próximo partido${p.competicion ? ` · ${p.competicion}` : ""}</span>
     <div class="vs"><b>${casa}</b><em>VS</em><b>${fuera}</b></div>
     <div class="cuenta" id="cuenta"></div>
     <div class="info">${fechaLarga(p.fecha)} · ${p.hora} h<br>${p.campo}</div>`;
@@ -527,7 +543,7 @@ function pintarPartidos() {
     <div class="partido">
       <div class="dia"><strong>${aFecha(p.fecha).getDate()}</strong><span>${aFecha(p.fecha).toLocaleDateString("es-ES", { month: "short" })}</span></div>
       <div><div class="rival">${p.local ? "vs" : "en"} ${p.rival}</div>
-        <div class="detalle"><span class="chip">${p.local ? "Local" : "Visitante"}</span> ${p.campo}</div></div>
+        <div class="detalle">${p.competicion ? `<span class="chip">${p.competicion}</span> ` : ""}<span class="chip">${p.local ? "Local" : "Visitante"}</span> ${p.campo}</div></div>
       <div class="hora">${p.hora} h</div>
     </div>`).join("") : `<p class="vacio">No hay partidos programados.</p>`;
 
@@ -536,7 +552,7 @@ function pintarPartidos() {
     return `
     <div class="partido">
       <div class="dia"><strong>${aFecha(p.fecha).getDate()}</strong><span>${aFecha(p.fecha).toLocaleDateString("es-ES", { month: "short" })}</span></div>
-      <div><div class="rival">${casa} – ${fuera}</div><div class="detalle">${p.campo}</div></div>
+      <div><div class="rival">${casa} – ${fuera}</div><div class="detalle">${p.competicion ? `<span class="chip">${p.competicion}</span> ` : ""}${p.campo}</div></div>
       <div class="marcador">${marcadorTexto(p)}<span class="res ${resultado(p)}">${resultado(p)}</span></div>
     </div>`;
   }).join("") : `<p class="vacio">Aún no se ha jugado ningún partido.</p>`;
@@ -608,7 +624,7 @@ function pintarEntrenamientos() {
   const ultimas = hechos.slice(-6);
   const pct = j => hechos.length ? Math.round(100 * hechos.filter(e => e.asistentes.includes(j.id)).length / hechos.length) : 0;
   const totalAsist = hechos.reduce((s, e) => s + e.asistentes.length, 0);
-  const mediaAsist = hechos.length ? (totalAsist / hechos.length).toFixed(1) : "0";
+  const mediaAsist = hechos.length ? (totalAsist / hechos.length).toFixed(1).replace(".", ",") : "0";
   const ultimo = hechos[hechos.length - 1];
 
   $("entreno-resumen").innerHTML = `
@@ -637,6 +653,7 @@ function pintarConvocatoria() {
   const p = partidos.find(x => x.fecha === convocatoria.partido);
   if (!p || !convocatoria.jugadores.length) { $("convocados").innerHTML = `<p class="vacio">La convocatoria aún no está publicada.</p>`; return; }
   const convocados = convocatoria.jugadores.map(id => porId[id]).filter(Boolean)
+    .map(j => ({ ...j, posicion: (convocatoria.posiciones || {})[j.id] || j.posicion }))
     .sort((a, b) => POSICIONES.indexOf(a.posicion) - POSICIONES.indexOf(b.posicion) || numDorsal(a) - numDorsal(b));
   const fuera = jugadores.filter(j => !convocatoria.jugadores.includes(j.id));
 
@@ -644,7 +661,7 @@ function pintarConvocatoria() {
     <div class="conv-cab">
       <div><span class="etiqueta">${convocados.length} convocados</span>
         <h3>${p.local ? "Laborales FC vs " + p.rival : p.rival + " vs Laborales FC"}</h3>
-        <p>${fechaLarga(p.fecha)} · ${p.hora} h · ${p.campo}</p></div>
+        <p>${p.competicion ? `${p.competicion} · ` : ""}${fechaLarga(p.fecha)} · ${p.hora} h · ${p.campo}</p></div>
       ${convocatoria.citacion ? `<div class="citacion"><b>Citación</b>${convocatoria.citacion}</div>` : ""}
     </div>
     <div class="conv-lista">${convocados.map(j => `
