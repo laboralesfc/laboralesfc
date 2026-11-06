@@ -204,6 +204,20 @@
   .bet-pasos li { counter-increment: paso; display: grid; grid-template-columns: 2rem 1fr; gap: .6rem; align-items: start; background: var(--tarjeta-2); border-radius: 10px; padding: .65rem .8rem; font-size: .93rem; }
   .bet-pasos li::before { content: counter(paso); font-family: "Anton", Impact, sans-serif; font-size: 1.3rem; color: var(--acento); line-height: 1.1; }
   @media (max-width: 820px) { .bet-caja { grid-template-columns: 1fr; padding: 1.2rem; } }
+  /* Botón de LaboralesBet en la portada: siempre amarillo y oscuro, porque va encima de la foto */
+  .bet-portada { margin-top: 1rem; display: inline-flex; align-items: center; gap: .9rem; max-width: 100%; background: #ffd23f; color: #10301f; text-decoration: none; border-radius: 12px; padding: .7rem 1rem; box-shadow: 0 8px 24px rgba(0,0,0,.35); transition: transform .15s; }
+  .bet-portada:hover { transform: translateY(-2px); }
+  .bet-portada-marca { font-family: "Anton", Impact, sans-serif; font-size: 1.5rem; line-height: 1; white-space: nowrap; }
+  .bet-portada-marca b { font-weight: 400; color: #fff; -webkit-text-stroke: 1px #10301f; }
+  .bet-portada-texto { font-weight: 700; font-size: .98rem; line-height: 1.2; min-width: 0; }
+  .bet-portada-texto small { display: block; font-weight: 600; font-size: .78rem; opacity: .75; }
+  .bet-portada-flecha { font-size: 1.4rem; font-weight: 700; margin-left: auto; }
+  @media (max-width: 480px) {
+    .bet-portada { display: flex; width: 100%; gap: .7rem; padding: .65rem .85rem; }
+    .bet-portada-marca { font-size: 1.3rem; }
+    .bet-portada-texto { font-size: .9rem; }
+  }
+  @media (prefers-reduced-motion: reduce) { .bet-portada { transition: none; } }
 
   footer { margin-top: 4rem; padding: 2rem 0; border-top: 1px solid var(--linea); color: var(--texto-suave); font-size: .88rem; text-align: center; }
 
@@ -277,13 +291,13 @@
   <div class="contenedor">
     <a href="#inicio" class="marca"><img src="img/logo-icono.png" alt=""><span>Laborales FC</span></a>
     <ul>
+      <li><a class="enlace bet" href="#laboralesbet">LaboralesBet</a></li>
       <li><a class="enlace" href="#plantilla">Plantilla</a></li>
       <li><a class="enlace" href="#partidos">Partidos</a></li>
       <li><a class="enlace" href="#goleadores">Goleadores</a></li>
       <li><a class="enlace" href="#entrenamientos">Entrenamientos</a></li>
       <li><a class="enlace" href="#convocatoria">Convocatoria</a></li>
       <li><a class="enlace" href="#galeria">Galería</a></li>
-      <li><a class="enlace bet" href="#laboralesbet">LaboralesBet</a></li>
     </ul>
   </div>
 </nav>
@@ -294,6 +308,11 @@
       <span class="etiqueta">Equipo de Fútbol 11 · Temporada 2026-27</span>
       <h1>Laborales FC</h1>
       <div class="resumen" id="resumen"></div>
+      <a class="bet-portada" href="https://claude.ai/artifact/TJ6ZtyWqTfxV7YF7yFzJuH" target="_blank" rel="noopener">
+        <span class="bet-portada-marca">Laborales<b>Bet</b></span>
+        <span class="bet-portada-texto">Apuesta con fichas al próximo partido<small>Sin dinero · 1.000 fichas por partido</small></span>
+        <span class="bet-portada-flecha" aria-hidden="true">→</span>
+      </a>
     </div>
     <div class="proximo" id="proximo"></div>
   </div>
@@ -364,7 +383,7 @@
         <li>Entra con tu cuenta de claude.ai y ponte un apodo de apostador.</li>
         <li>Reparte tus 1.000 fichas del partido entre las apuestas que quieras, una opción por pregunta.</li>
         <li>Al acabar el partido se dan los resultados y los que aciertan se reparten el bote.</li>
-        <li>Mira la clasificación y riete del farolillo rojo.</li>
+        <li>Mira la clasificación y ríete del farolillo rojo.</li>
       </ol>
     </div>
   </section>
