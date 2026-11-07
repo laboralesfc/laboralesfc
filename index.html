@@ -337,6 +337,83 @@
   .lb-acceso { justify-self: center; font: inherit; font-size: .8rem; color: var(--texto-suave); background: none; border: 0; text-decoration: underline; cursor: pointer; padding: .3rem; }
   .lb-vacio { text-align: center; color: var(--texto-suave); padding: 2.5rem 1rem; border: 1px dashed var(--linea); border-radius: var(--radio); }
   .lb-vacio strong { display: block; font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: 1.4rem; color: var(--texto); margin-bottom: .3rem; }
+  /* Cabecera del partido: siempre verde oscuro con texto claro, como la portada */
+  .lb-hero { background: radial-gradient(120% 140% at 0% 0%, #1f6b40 0%, #12402a 45%, #0b2618 100%); color: #fff; border-radius: var(--radio); padding: 1rem 1.1rem 1.1rem; display: grid; gap: .9rem; box-shadow: var(--sombra); }
+  .lb-hero-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3rem 1rem; font-size: .8rem; color: rgba(255,255,255,.75); text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+  .lb-cuenta { color: #ffd23f; }
+  .lb-cuenta b { font-variant-numeric: tabular-nums; }
+  .lb-vs { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .8rem; text-align: center; }
+  .lb-equipo { display: grid; justify-items: center; gap: .4rem; min-width: 0; }
+  .lb-equipo img, .lb-escudo { width: 58px; height: 58px; border-radius: 50%; background: #fff; padding: 6px; }
+  .lb-escudo { display: grid; place-items: center; padding: 0; background: #2c4a6b; border: 3px solid rgba(255,255,255,.85); font-family: "Anton", Impact, sans-serif; font-size: 1.7rem; color: #fff; }
+  .lb-equipo b { font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: clamp(1.1rem, 3.5vw, 1.5rem); line-height: 1.05; overflow-wrap: anywhere; }
+  .lb-vs-x { font-family: "Anton", Impact, sans-serif; font-size: 1.1rem; color: rgba(255,255,255,.6); }
+  .lb-1x2 { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
+  .lb-hero-op { display: grid; gap: .1rem; justify-items: center; font: inherit; color: #fff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2); border-radius: 10px; padding: .5rem .3rem; cursor: pointer; min-width: 0; }
+  .lb-hero-op span { font-size: .78rem; color: rgba(255,255,255,.8); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+  .lb-hero-op b { font-size: 1.15rem; color: #ffd23f; font-variant-numeric: tabular-nums; }
+  .lb-hero-op:hover { border-color: #ffd23f; }
+  .lb-hero-op.lb-sel { background: #ffd23f; border-color: #ffd23f; }
+  .lb-hero-op.lb-sel span, .lb-hero-op.lb-sel b { color: #10301f; }
+  .lb-combi { background: rgba(0,0,0,.25); border: 1px dashed rgba(255,210,63,.6); border-radius: 12px; padding: .75rem .85rem; display: grid; gap: .55rem; }
+  .lb-combi-cab { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
+  .lb-combi-cab b { font-weight: 700; }
+  .lb-combi-cab span { font-size: .85rem; color: rgba(255,255,255,.8); }
+  .lb-combi-cab span b { color: #ffd23f; font-size: 1.1rem; }
+  .lb-combi ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
+  .lb-combi li { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; font-size: .9rem; }
+  .lb-combi li small { display: block; font-size: .72rem; color: rgba(255,255,255,.65); }
+  .lb-combi li b { color: #ffd23f; font-variant-numeric: tabular-nums; }
+  .lb-combi-btn { font: inherit; font-weight: 700; background: #ffd23f; color: #10301f; border: 0; border-radius: 8px; padding: .6rem; cursor: pointer; }
+  .lb-combi-btn:disabled { background: rgba(255,255,255,.15); color: #fff; cursor: default; }
+  /* Supercuota */
+  .lb-super { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1rem; border-radius: var(--radio); background: linear-gradient(110deg, #ffd23f 0%, #ffb627 100%); color: #10301f; box-shadow: var(--sombra); }
+  .lb-super.lb-super-sel { outline: 3px solid #10301f; outline-offset: -3px; }
+  .lb-super-txt { display: grid; gap: .1rem; min-width: 0; }
+  .lb-super-tag { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; }
+  .lb-super h4 { margin: 0; font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: 1.3rem; line-height: 1.1; }
+  .lb-super small { font-size: .78rem; opacity: .8; }
+  .lb-super-btn { flex-shrink: 0; display: grid; justify-items: center; font: inherit; background: #10301f; color: #fff; border: 0; border-radius: 10px; padding: .45rem .9rem; cursor: pointer; min-width: 84px; }
+  .lb-super-btn s { font-size: .8rem; opacity: .65; }
+  .lb-super-btn b { font-size: 1.35rem; color: #ffd23f; font-variant-numeric: tabular-nums; }
+  .lb-super-btn:disabled { cursor: default; font-weight: 700; font-size: .85rem; padding: .7rem .9rem; }
+  .lb-sels li.lb-sel-super { background: #ffd23f; color: #10301f; }
+  .lb-sels li.lb-sel-super small, .lb-sels li.lb-sel-super .lb-cuota { color: #10301f; }
+  .lb-cats { margin-top: .2rem; }
+  .lb-seccion { display: grid; gap: .6rem; }
+  .lb-seccion-cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .2rem 1rem; }
+  .lb-seccion-cab h4 { margin: 0; font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: 1.3rem; }
+  .lb-seccion-cab small { color: var(--texto-suave); font-size: .82rem; }
+  /* Popularidad anónima dentro de cada opción */
+  .lb-op { position: relative; }
+  .lb-con-pop .lb-op { padding-bottom: .65rem; }
+  .lb-pop { position: absolute; left: .45rem; right: .45rem; bottom: .3rem; height: 3px; border-radius: 99px; background: var(--linea); overflow: hidden; }
+  .lb-pop i { display: block; height: 100%; background: var(--verde); border-radius: 99px; }
+  .lb-pop-num { font-size: .66rem; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+  .lb-muchas .lb-pop-num { order: 3; }
+  .lb-op.lb-sel .lb-pop-num { color: var(--acento-texto); }
+  .lb-total { color: var(--texto-suave); font-size: .78rem; }
+  /* Resumen de la jornada */
+  .lb-jornada { padding: .9rem 1rem; display: grid; gap: .5rem; border-color: var(--acento); }
+  .lb-jornada-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; text-align: center; }
+  .lb-jornada-nums strong { display: block; font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+  .lb-jornada-nums span { font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--texto-suave); }
+  .lb-jornada p { margin: 0; font-size: .9rem; }
+  /* Cartera: paga y logros */
+  .lb-cartera-pie { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem .9rem; align-items: center; font-size: .85rem; color: var(--texto-suave); border-top: 1px dashed var(--linea); padding-top: .6rem; }
+  .lb-paga b { color: var(--verde); }
+  .lb-mis-logros { display: flex; flex-wrap: wrap; gap: .3rem; }
+  .lb-mis-logros span { background: var(--tarjeta-2); border-radius: 999px; padding: .1rem .55rem; color: var(--texto); font-size: .8rem; }
+  .lb-logros { margin-left: .3rem; font-size: .85rem; letter-spacing: .05em; }
+  .lb-rank-tabs button:disabled { opacity: .4; cursor: not-allowed; }
+  .lb-saldo.lb-pos-num { color: var(--verde); }
+  .lb-saldo.lb-neg-num { color: var(--rojo); }
+  .lb-t-fin { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .4rem; }
+  .lb-compartir { font: inherit; font-size: .8rem; font-weight: 700; color: #fff; background: #25a35a; border: 0; border-radius: 999px; padding: .3rem .8rem; cursor: pointer; }
+  .lb-compartir::before { content: "↗ "; }
+  .lb-ayuda { margin: 0; font-size: .8rem; color: var(--texto-suave); }
+  .lb-datos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .45rem .6rem; }
+  .lb-crear select { font: inherit; color: var(--texto); background: var(--tarjeta-2); border: 1px solid var(--linea); border-radius: 8px; padding: .45rem .5rem; min-width: 0; }
   .lb-toast { position: fixed; left: 50%; bottom: calc(1rem + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--texto); color: var(--fondo); padding: .6rem 1rem; border-radius: 10px; font-weight: 600; font-size: .92rem; box-shadow: var(--sombra); z-index: 40; max-width: calc(100% - 32px); }
   @media (max-width: 900px) {
     .lb-grid, .lb-cartera { grid-template-columns: minmax(0, 1fr); }
@@ -360,6 +437,12 @@
     .lb-ops.lb-muchas { grid-template-columns: 1fr 1fr; }
     .lb-muchas .lb-op { padding: .4rem .5rem; }
     .lb-tickets { grid-template-columns: minmax(0, 1fr); }
+    .lb-equipo img, .lb-escudo { width: 46px; height: 46px; }
+    .lb-escudo { font-size: 1.35rem; }
+    .lb-hero { padding: .9rem .85rem 1rem; }
+    .lb-super { padding: .75rem .85rem; gap: .7rem; }
+    .lb-super h4 { font-size: 1.1rem; }
+    .lb-jornada-nums { grid-template-columns: 1fr 1fr; }
   }
   /* Botón de LaboralesBet en la portada: siempre amarillo y oscuro, porque va encima de la foto */
   .bet-portada { margin-top: 1rem; display: inline-flex; align-items: center; gap: .9rem; max-width: 100%; background: #ffd23f; color: #10301f; text-decoration: none; border-radius: 12px; padding: .7rem 1rem; box-shadow: 0 8px 24px rgba(0,0,0,.35); transition: transform .15s; }
@@ -542,6 +625,7 @@
           <input id="lb-apodo" maxlength="24" placeholder="Tu apodo de apostador" aria-label="Tu apodo de apostador" autocomplete="off">
           <button class="lb-btn lb-primario" id="lb-apodo-btn" type="submit">Guardar apodo</button>
         </form>
+        <div class="lb-cartera-pie" id="lb-w-pie"></div>
       </div>
       <div class="filtros lb-vistas" id="lb-vistas" role="toolbar" aria-label="Secciones de LaboralesBet"></div>
       <div class="lb-grid">
@@ -550,7 +634,8 @@
           <div class="tarjeta lb-slip lb-slip-vacia" id="lb-slip"></div>
           <div class="tarjeta lb-panel">
             <h3>Clasificación</h3>
-            <p>Saldo más lo que tienes en juego. Todos empezáis con 1.000 fichas.</p>
+            <div class="lb-modo lb-rank-tabs" id="lb-rank-tabs"></div>
+            <p id="lb-rank-texto"></p>
             <ol class="lb-ranking" id="lb-ranking"></ol>
           </div>
           <div class="tarjeta lb-panel" id="lb-admin" hidden>
@@ -558,6 +643,25 @@
             <p id="lb-gen-texto"></p>
             <button class="lb-btn lb-primario" id="lb-gen" type="button">Crear mercados del partido</button>
             <p>Las cuotas salen solas según la posición y los goles de cada uno. Puedes cambiarlas con el botón «Cuotas» de cada mercado mientras esté abierto.</p>
+            <form class="lb-crear" id="lb-form-datos">
+              <h4>Datos del partido</h4>
+              <p class="lb-ayuda">Con esto se resuelven solos los mercados. Goleadores, asistencias, titulares y convocados se cogen de la web. Deja en blanco lo que no sepas.</p>
+              <label for="lb-d-partido">Partido<select id="lb-d-partido"></select></label>
+              <div class="lb-datos-grid">
+                <label for="lb-d-nuestros">Goles Laborales<input id="lb-d-nuestros" type="number" min="0" inputmode="numeric"></label>
+                <label for="lb-d-suyos">Goles rival<input id="lb-d-suyos" type="number" min="0" inputmode="numeric"></label>
+                <label for="lb-d-corners-0">Córners Laborales<input id="lb-d-corners-0" type="number" min="0" inputmode="numeric"></label>
+                <label for="lb-d-corners-1">Córners rival<input id="lb-d-corners-1" type="number" min="0" inputmode="numeric"></label>
+                <label for="lb-d-fueras-0">Fueras Laborales<input id="lb-d-fueras-0" type="number" min="0" inputmode="numeric"></label>
+                <label for="lb-d-fueras-1">Fueras rival<input id="lb-d-fueras-1" type="number" min="0" inputmode="numeric"></label>
+                <label for="lb-d-tarjetas-0">Tarjetas Laborales<input id="lb-d-tarjetas-0" type="number" min="0" inputmode="numeric"></label>
+                <label for="lb-d-tarjetas-1">Tarjetas rival<input id="lb-d-tarjetas-1" type="number" min="0" inputmode="numeric"></label>
+                <label for="lb-d-fuerasCrispin">Fueras de Crispín<input id="lb-d-fuerasCrispin" type="number" min="0" inputmode="numeric"></label>
+                <label for="lb-d-primerCorner">Primer córner<select id="lb-d-primerCorner"><option value="">—</option><option value="laborales">Laborales</option><option value="rival">Rival</option><option value="ninguno">Ninguno</option></select></label>
+                <label for="lb-d-roja">¿Hubo roja?<select id="lb-d-roja"><option value="">—</option><option value="si">Sí</option><option value="no">No</option></select></label>
+              </div>
+              <button class="lb-btn lb-primario" type="submit">Guardar datos</button>
+            </form>
             <form class="lb-crear" id="lb-form-crear">
               <h4>Nuevo mercado a mano</h4>
               <label for="lb-c-partido">Partido<input id="lb-c-partido" list="lb-lista-partidos" maxlength="80" required placeholder="Laborales FC vs Derecho"></label>
@@ -573,10 +677,12 @@
             <h3>Cómo funciona</h3>
             <ol class="lb-reglas">
               <li>Ponte un apodo. No hace falta registrarse ni hay dinero de por medio.</li>
-              <li>Empiezas con 1.000 fichas. Lo que ganas se suma a tu saldo y lo que pierdes se resta, partido tras partido.</li>
+              <li>Empiezas con 1.000 fichas y cada lunes cobras una paga de 500. Lo que ganas se suma a tu saldo y lo que pierdes se resta, partido tras partido.</li>
               <li>Toca una cuota para añadirla al boleto. Con una selección haces una apuesta simple. Con varias de mercados distintos haces una combinada: las cuotas se multiplican, pero tienes que acertarlas todas.</li>
               <li>La cuota se fija al apostar. Si aciertas cobras fichas × cuota.</li>
+              <li>La supercuota paga más de lo normal, pero solo se puede apostar sola (sin combinar) y una vez por persona.</li>
               <li>Si se anula un mercado, esa selección cuenta como cuota 1.</li>
+              <li>Todo es anónimo: de cada opción solo se ve qué porcentaje de gente ha apostado, nunca quién. Si quieres presumir, comparte tu boleto por WhatsApp.</li>
               <li>Las apuestas se cierran al empezar el partido y no se pueden retirar.</li>
               <li>Los que apostasteis en el amistoso contra RESA ya tenéis sumado lo que ganasteis ese día.</li>
               <li>Tu cuenta se queda guardada en este móvil o navegador. Si entras desde otro, empezarás de cero.</li>
@@ -663,7 +769,10 @@ const cuerpoTecnico = [
 
 // Una línea por partido. Si aún no se ha jugado, deja "nuestros" y "suyos" en null.
 // Al jugarse, opcional: "asistentes" (ids, suman PJ), "titulares" (ids), "goles" (un id por gol; repite el id si marcó varios), "asistencias" (igual que goles)
-// y "encajados" (goles encajados por cada portero, p. ej. { ruben: 1 }). Ejemplo:
+// y "encajados" (goles encajados por cada portero, p. ej. { ruben: 1 }).
+// Pon "goles" y "asistencias" en el orden en que pasaron: el primero cuenta para «primer goleador» y «primera asistencia» de LaboralesBet.
+// Opcional para LaboralesBet: "convocados" (ids) y "estadisticas": { corners: [nuestros, suyos], fueras: [n, s], tarjetas: [n, s],
+// fuerasCrispin: 2, primerCorner: "laborales" | "rival" | "ninguno", roja: false }. Ejemplo:
 // { fecha: "2026-11-05", hora: "18:30", rival: "Nombre rival", competicion: "Trofeo Rector", local: true, campo: "Campo Municipal", nuestros: null, suyos: null },
 const partidos = [
   { fecha: "2026-11-06", hora: "22:00", rival: "Residencia Universitaria Carlos V (RESA)", competicion: "Amistoso", local: true, campo: "Cartuja", nuestros: 3, suyos: 2,

@@ -1,8 +1,9 @@
 // LaboralesBet: apuestas de broma con fichas (sin dinero), con cuotas fijas y combinadas.
-// Cada jugador empieza con SALDO_INICIAL fichas; lo que gana o pierde se acumula partido a partido.
+// Cada jugador empieza con SALDO_INICIAL fichas, cobra una paga cada lunes y lo que gana o pierde se acumula.
 // Los datos se guardan en Firebase (Firestore). La configuración va en firebase-config.js.
-//   apuestas/<id>  = un mercado: { tipo: "cuotas", titulo, opciones[], cuotas[], estado, ganadora, cierre, partido… }
-//   votos/<uid>    = un apostador: { apodo, boletos: [{ id, t, fichas, sel: [{ a, op, c }] }], picks (sistema antiguo) }
+//   apuestas/<id>        = un mercado: { tipo: "cuotas", titulo, opciones[], cuotas[], estado, ganadora, cierre, partido… }
+//   apuestas/_datos-<id> = datos del partido que pone el organizador (córners, tarjetas…) para resolver solo
+//   votos/<uid>          = un apostador: { apodo, boletos: [{ id, t, fichas, sel: [{ a, op, c }] }], picks (sistema antiguo) }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, onSnapshot, setDoc, updateDoc, deleteDoc, addDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -10,6 +11,8 @@ import { firebaseConfig } from "./firebase-config.js";
 
 const SALDO_INICIAL = 1000;
 const MAX_SELECCIONES = 10;
+const PAGA_SEMANAL = 500;
+const PAGA_INICIO = "2026-11-09T00:00"; // primer lunes de paga; después, cada lunes a las 00:00
 
 // ---------- Amistoso contra RESA (6-11-2026): se jugó con el sistema antiguo de bote compartido ----------
 // Sus resultados van aquí; lo que cada uno ganó o perdió ese día se suma a su saldo inicial.
@@ -51,6 +54,23 @@ const EXTRAS = {
   ],
 };
 
+// Supercuotas: cuota inflada, solo como apuesta simple y una por persona.
+// "cumple" decide si se cumple con los datos del partido (devuelve undefined mientras no se sepa).
+const SUPERCUOTAS = {
+  "2026-11-12": [
+    { clave: "super-crispin", titulo: "Crispín marca y el Laborales gana", antes: 2.34, cuota: 3.00,
+      cumple: d => d.goles === undefined ? undefined : d.goles.includes("crispin") && d.nuestros > d.suyos },
+  ],
+};
+
+// La combi del día: combinada ya montada que se añade al boleto con un toque ([clave del mercado, opción])
+const COMBI_DEL_DIA = {
+  "2026-11-12": [["resultado", "Laborales FC"], ["total", "Más de 2,5"], ["corners-laborales", "Más de 4,5"]],
+};
+
+// Mercados que salen en la pestaña «Destacados», en este orden (el resultado ya va en la cabecera del partido)
+const DESTACADOS = ["margen", "ambos", "primer-gol", "total", "corners-mas", "tarjetas-ambos"];
+
 // Cuotas puestas a mano para un partido (clave = fecha; dentro, la clave del mercado y una cuota por opción, en orden)
 const CUOTAS_FIJAS = {
   "2026-11-12": {
@@ -90,34 +110,160 @@ const CUOTAS_FIJAS = {
 // Mercados de convocatoria: se crean mientras no esté publicada la convocatoria de ese partido
 const MAX_CONVOCADOS = 10; // a cuántos jugadores distintos puede apostar cada uno
 
+const CATEGORIAS = [["partido", "Partido"], ["goleadores", "Goleadores"], ["jugadores", "Jugadores"], ["convocatoria", "Convocatoria"],
+  ["corners", "Córners"], ["fueras", "Fueras de juego"], ["tarjetas", "Tarjetas"], ["otros", "Otros"]];
+const LOGROS = {
+  rey: ["👑", "Ganó una jornada"],
+  racha: ["🔥", "Racha: sus 3 últimos boletos, ganados"],
+  combi: ["🎯", "Acertó una combinada de 5 o más"],
+  pelotazo: ["💰", "Cobró 1.000 fichas o más de un solo boleto"],
+  tipster: ["🧠", "Tipster: gana el 60 % de sus boletos (mínimo 5)"],
+};
+
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const fmt = n => (Math.round(n) || 0).toLocaleString("es-ES");
 const conSigno = n => (Math.round(n) > 0 ? "+" : "") + fmt(n);
 const cuotaTxt = c => (Number(c) || 0).toFixed(2).replace(".", ",");
 const fechaTxt = iso => new Date(iso).toLocaleString("es-ES", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const diaTxt = d => d.toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" });
 const slug = s => String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const nuevoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const masHoras = (iso, h) => new Date(new Date(iso).getTime() + h * 36e5).toISOString();
 
 let db = null, auth = null, uid = null, esAdmin = false, esAnonimo = true, conectado = false;
-let mercados = [], porIdM = {}, votos = {}, cuentas = {}, legado = {};
-let vista = "apostar", slip = [], stake = 10, simples = false, slipAbierto = false;
+let mercados = [], porIdM = {}, votos = {}, cuentas = {}, legado = {}, datosAdmin = {};
+let jornadas = [], logros = {}, popMap = new Map(), cacheGan = new Map(), cacheDatos = new Map();
+let vista = "apostar", cat = "destacados", rankModo = "general";
+let slip = [], stake = 10, simples = false, slipAbierto = false;
 let resolviendo = null, borrando = null, editando = null;
 const bloquesAbiertos = new Set();
 
 try { const g = JSON.parse(localStorage.getItem("lb-boleto") || "{}"); slip = Array.isArray(g.slip) ? g.slip : []; stake = g.stake > 0 ? g.stake : 10; } catch (e) { /* sin almacenamiento */ }
 function guardarSlip() { try { localStorage.setItem("lb-boleto", JSON.stringify({ slip, stake })); } catch (e) { /* sin almacenamiento */ } }
 
+// ---------- Partidos de la web (datos de index.html) ----------
+const hayWeb = () => typeof partidos !== "undefined" && typeof porId !== "undefined";
+const cortoDe = p => (p.rival.match(/\(([^)]+)\)/) || [])[1] || p.rival.replace(/^Facultad de\s+/i, "");
+const pidDe = p => `${p.fecha}-${slug(cortoDe(p))}`;
+const partidoWeb = pid => hayWeb() ? partidos.find(p => pidDe(p) === pid) || null : null;
+
+// Todo lo que se sabe de un partido: lo apuntado en la web + lo que pone el organizador en «Datos del partido»
+function datosDe(pid) {
+  if (cacheDatos.has(pid)) return cacheDatos.get(pid);
+  const p = partidoWeb(pid), adm = datosAdmin[pid] || {};
+  let d = null;
+  if (p || Object.keys(adm).length) {
+    d = {};
+    if (p) {
+      if (p.nuestros !== null && p.nuestros !== undefined) { d.nuestros = p.nuestros; d.suyos = p.suyos; }
+      d.goles = p.goles; d.asistencias = p.asistencias; d.titulares = p.titulares;
+      const conv = typeof convocatoria !== "undefined" && convocatoria.partido === p.fecha && convocatoria.jugadores.length ? convocatoria.jugadores : null;
+      d.convocados = p.convocados || conv || (d.nuestros !== undefined ? p.asistentes : undefined);
+      Object.assign(d, p.estadisticas || {});
+    }
+    for (const [k, v] of Object.entries(adm)) {
+      if (v === null || v === undefined || v === "" || (Array.isArray(v) && v.some(x => !Number.isFinite(x)))) continue;
+      d[k] = v;
+    }
+    d.hay = Number.isFinite(d.nuestros) && Number.isFinite(d.suyos);
+    if (!Array.isArray(d.goles)) d.goles = d.hay && d.nuestros === 0 ? [] : undefined;
+    if (!Array.isArray(d.asistencias)) d.asistencias = d.hay && d.nuestros === 0 ? [] : undefined;
+  }
+  cacheDatos.set(pid, d);
+  return d;
+}
+
 // ---------- Mercados ----------
 const esCuotas = a => a && a.tipo === "cuotas";
 const partidoDe = a => ({ id: a.partidoId || "general", nombre: a.partidoNombre || "Otras apuestas", fecha: a.partidoFecha || null });
+const claveDe = a => a.id.slice(String(a.partidoId || "").length + 1);
+const superDe = a => Object.values(SUPERCUOTAS).flat().find(s => `${a.partidoId}-${s.clave}` === a.id);
+function categoriaDe(a) {
+  const k = claveDe(a);
+  if (/^(resultado|margen|goles-|total|ambos)/.test(k)) return "partido";
+  if (/^(primer-gol|asistencia|marca-)/.test(k)) return "goleadores";
+  if (/^(portero-titular|titular-)/.test(k)) return "jugadores";
+  if (/^convocado-/.test(k)) return "convocatoria";
+  if (/^corners/.test(k)) return "corners";
+  if (/^fueras/.test(k)) return "fueras";
+  if (/^(tarjetas|roja)/.test(k)) return "tarjetas";
+  return "otros";
+}
+
+// Ganadora: la que marque el organizador; si no, la que sale de los datos del partido (o undefined si aún no se sabe).
+// -1 = no gana ninguna opción (supercuota que no se cumple).
 function ganadoraDe(a) {
+  if (!cacheGan.has(a.id)) cacheGan.set(a.id, calcularGanadora(a));
+  return cacheGan.get(a.id);
+}
+function calcularGanadora(a) {
   if (a.estado === "resuelta" && Number.isInteger(a.ganadora)) return a.ganadora;
-  if (esCuotas(a) || a.estado === "anulada" || !a.id.startsWith(LEGADO_PID + "-")) return undefined;
+  if (a.estado === "anulada") return undefined;
+  if (esCuotas(a)) return ganadoraAutomatica(a);
+  if (!a.id.startsWith(LEGADO_PID + "-")) return undefined;
   const k = a.id.slice(LEGADO_PID.length + 1);
   const txt = k.startsWith("tit-") ? (LEGADO_TITULARES.includes(k.replace(/^tit-\d+-/, "")) ? "Titular" : "Suplente") : LEGADO_GANADORAS[k];
   const i = a.opciones.indexOf(txt);
   return i >= 0 ? i : undefined;
+}
+function ganadoraAutomatica(a) {
+  const d = datosDe(a.partidoId);
+  if (!d) return undefined;
+  const k = claveDe(a);
+  const ok = i => i >= 0 ? i : undefined;
+  const por = t => ok(a.opciones.indexOf(t));
+  const porJ = id => ok((a.ids || []).indexOf(id));
+  const sino = v => v === undefined ? undefined : por(v ? "Sí" : "No");
+  const exacto = (v, tope) => Number.isFinite(v) ? por(v >= tope ? `${tope} o más` : String(v)) : undefined;
+  const linea = v => Number.isFinite(v) ? ok(a.opciones.findIndex(o => {
+    const m = o.match(/^(Menos|Más) de (\d+),5$/);
+    return m && (m[1] === "Menos" ? v < +m[2] + 0.5 : v > +m[2] + 0.5);
+  })) : undefined;
+  const quien = (l, r) => Number.isFinite(l) && Number.isFinite(r) ? (l > r ? 0 : l === r ? por("Empate") : a.opciones.length - 1) : undefined;
+  const par = v => Array.isArray(v) && v.length === 2 && v.every(Number.isFinite) ? v : [undefined, undefined];
+  const suma = v => { const [x, y] = par(v); return x === undefined ? undefined : x + y; };
+  const G = d.nuestros, R = d.suyos;
+  let m;
+
+  if (a.supercuota) { const s = superDe(a); if (!s || !d.hay) return undefined; const v = s.cumple(d); return v === undefined ? undefined : v ? 0 : -1; }
+  if (k === "resultado") return d.hay ? quien(G, R) : undefined;
+  if (k === "margen") {
+    if (!d.hay) return undefined;
+    const dif = G - R;
+    if (!dif) return por("Empate");
+    const n = Math.abs(dif) >= 3 ? "3 o más" : String(Math.abs(dif));
+    return ok(a.opciones.findIndex(o => o.endsWith(`por ${n}`) && o.startsWith("Laborales") === dif > 0));
+  }
+  if (k === "goles-laborales") return d.hay ? exacto(G, 4) : undefined;
+  if (k === "goles-rival") return d.hay ? exacto(R, 3) : undefined;
+  if (k === "total") return d.hay ? linea(G + R) : undefined;
+  if (k === "ambos") return d.hay ? sino(G > 0 && R > 0) : undefined;
+  if (k === "primer-gol") return d.goles ? (d.goles.length ? porJ(d.goles[0]) : por("Nadie")) : undefined;
+  if (k === "asistencia") return d.asistencias ? (d.asistencias.length ? porJ(d.asistencias[0]) : por("Nadie")) : undefined;
+  if (k === "portero-titular") {
+    if (!Array.isArray(d.titulares) || !hayWeb()) return undefined;
+    const pt = d.titulares.find(id => porId[id] && porId[id].posicion === "Portero");
+    return pt ? porJ(pt) : undefined;
+  }
+  if ((m = k.match(/^marca-(.+)$/))) return d.goles ? sino(d.goles.includes(m[1])) : undefined;
+  if ((m = k.match(/^titular-(.+)$/))) return Array.isArray(d.titulares) ? por(d.titulares.includes(m[1]) ? "Titular" : "Suplente") : undefined;
+  if ((m = k.match(/^convocado-(.+)$/))) return Array.isArray(d.convocados) ? por(d.convocados.includes(m[1]) ? "Convocado" : "Desconvocado") : undefined;
+  const [cl, cr] = par(d.corners), [fl, fr] = par(d.fueras), [tl, tr] = par(d.tarjetas);
+  switch (k) {
+    case "corners-total": return linea(suma(d.corners));
+    case "corners-laborales": return linea(cl);
+    case "corners-mas": return quien(cl, cr);
+    case "corners-primero": return d.primerCorner === "laborales" ? 0 : d.primerCorner === "rival" ? 1 : d.primerCorner === "ninguno" ? por("Ninguno") : undefined;
+    case "fueras-total": return linea(suma(d.fueras));
+    case "fueras-mas": return quien(fl, fr);
+    case "fueras-crispin": return exacto(d.fuerasCrispin, 3);
+    case "tarjetas-total": return exacto(suma(d.tarjetas), 3);
+    case "tarjetas-linea": return linea(suma(d.tarjetas));
+    case "tarjetas-ambos": return tl === undefined ? undefined : sino(tl > 0 && tr > 0);
+    case "roja": return typeof d.roja === "boolean" ? sino(d.roja) : undefined;
+  }
+  return undefined;
 }
 function estado(a) {
   if (a.estado === "anulada") return "anulada";
@@ -125,7 +271,8 @@ function estado(a) {
   if (!esCuotas(a) || a.estado === "cerrada" || (a.cierre && new Date(a.cierre) <= new Date())) return "cerrada";
   return "abierta";
 }
-const horaDe = a => a.resuelta || a.cierre || "";
+// Hora a la que se cobra: la de resolución, o el final del partido si se resolvió solo
+const horaDe = a => a.resuelta || (a.cierre ? masHoras(a.cierre, 2) : "");
 function ordenar(lista) {
   return [...lista].sort((a, b) => {
     const pa = partidoDe(a).fecha || "", pb = partidoDe(b).fecha || "";
@@ -133,6 +280,11 @@ function ordenar(lista) {
     if (typeof a.orden === "number" && typeof b.orden === "number" && a.orden !== b.orden) return a.orden - b.orden;
     return String(a.creada || "").localeCompare(String(b.creada || ""));
   });
+}
+function agrupar(lista) {
+  const grupos = [];
+  for (const a of lista) { const p = partidoDe(a); let g = grupos.find(x => x.p.id === p.id); if (!g) grupos.push(g = { p, items: [] }); g.items.push(a); }
+  return grupos;
 }
 
 // ---------- Cuentas ----------
@@ -164,6 +316,10 @@ function calcularLegado() {
   return res;
 }
 
+const PAGA_INI = new Date(PAGA_INICIO).getTime(), SEMANA = 7 * 864e5;
+const pagasHasta = ms => ms < PAGA_INI ? 0 : Math.floor((ms - PAGA_INI) / SEMANA) + 1;
+const proximaPaga = () => new Date(PAGA_INI + pagasHasta(Date.now()) * SEMANA);
+
 function boletoValido(b) {
   if (!b || !Array.isArray(b.sel) || !b.sel.length || b.sel.length > MAX_SELECCIONES) return false;
   if (!Number.isInteger(b.fichas) || b.fichas < 1) return false;
@@ -171,6 +327,7 @@ function boletoValido(b) {
   for (const s of b.sel) {
     const a = s && porIdM[s.a];
     if (!esCuotas(a) || vistos.has(s.a)) return false;
+    if (a.supercuota && b.sel.length > 1) return false; // la supercuota va sola
     vistos.add(s.a);
     if (!Number.isInteger(s.op) || s.op < 0 || s.op >= a.opciones.length) return false;
     const max = Number((a.cuotasMax || a.cuotas || [])[s.op]) || 0;
@@ -201,25 +358,69 @@ function calcularCuenta(u) {
   const base = SALDO_INICIAL + (L ? L.cobrado - L.apostado : 0);
   const lista = ((votos[u] && Array.isArray(votos[u].boletos)) ? votos[u].boletos : []).filter(boletoValido)
     .map(b => ({ b, r: evaluar(b) })).sort((x, y) => String(x.b.t).localeCompare(String(y.b.t)));
-  const ok = [];
+  const ok = [], supers = new Set();
+  const invalida = it => { it.r = { estado: "invalida", legs: it.b.sel.map(() => "anulada"), cobro: 0 }; };
   for (const it of lista) {
     const t = String(it.b.t || "");
-    let disp = base;
+    const sup = it.b.sel.find(s => porIdM[s.a].supercuota);
+    if (sup && supers.has(sup.a)) { invalida(it); continue; } // una supercuota por persona
+    let disp = base + PAGA_SEMANAL * pagasHasta(new Date(t).getTime() || 0);
     for (const o of ok) { disp -= o.b.fichas; if (o.r.hora && o.r.hora <= t) disp += o.r.cobro; }
-    if (it.b.fichas <= disp + 1e-6) ok.push(it); else it.r = { estado: "invalida", legs: it.b.sel.map(() => "anulada"), cobro: 0 };
+    if (it.b.fichas <= disp + 1e-6) { ok.push(it); if (sup) supers.add(sup.a); } else invalida(it);
   }
-  let saldo = base, enJuego = 0, ganados = 0, jugados = 0;
+  const pagas = pagasHasta(Date.now());
+  let saldo = base + PAGA_SEMANAL * pagas, enJuego = 0, ganados = 0, jugados = 0;
   for (const o of ok) {
     saldo -= o.b.fichas;
     if (o.r.estado === "pendiente") enJuego += o.b.fichas;
     else { saldo += o.r.cobro; if (o.r.estado !== "devuelta") { jugados++; if (o.r.estado === "ganada") ganados++; } }
   }
-  return { base, saldo, enJuego, total: saldo + enJuego, ganados, jugados, boletos: lista.reverse(), legado: L };
+  return { base, pagas, saldo, enJuego, total: saldo + enJuego, ganados, jugados, boletos: lista.reverse(), legado: L };
 }
 const apodoDe = u => (votos[u] && typeof votos[u].apodo === "string" && votos[u].apodo.trim().slice(0, 24)) || "";
 const nombreDe = u => apodoDe(u) || "Anónimo";
 const puedeApostar = () => !!(db && uid);
-const miCuenta = () => (uid && cuentas[uid]) || { base: SALDO_INICIAL, saldo: SALDO_INICIAL, enJuego: 0, total: SALDO_INICIAL, ganados: 0, jugados: 0, boletos: [], legado: null };
+const cuentaVacia = () => { const pagas = pagasHasta(Date.now()), s = SALDO_INICIAL + PAGA_SEMANAL * pagas; return { base: SALDO_INICIAL, pagas, saldo: s, enJuego: 0, total: s, ganados: 0, jugados: 0, boletos: [], legado: null }; };
+const miCuenta = () => (uid && cuentas[uid]) || cuentaVacia();
+const yaTieneSuper = a => miCuenta().boletos.some(({ b, r }) => r.estado !== "invalida" && b.sel.some(s => s.a === a.id));
+// El partido al que pertenece un boleto: el de su selección más tardía
+const partidoBoleto = b => b.sel.map(s => porIdM[s.a]).sort((x, y) => String(partidoDe(y).fecha).localeCompare(String(partidoDe(x).fecha)))[0];
+
+// ---------- Jornadas, logros y popularidad ----------
+function calcularJornadas() {
+  const J = new Map();
+  const de = a => { const p = partidoDe(a); return J.get(p.id) || J.set(p.id, { ...p, fecha: p.fecha || "", netos: new Map() }).get(p.id); };
+  const sumar = (j, u, neto, n) => { const x = j.netos.get(u) || { neto: 0, n: 0 }; x.neto += neto; x.n += n; j.netos.set(u, x); };
+  for (const [u, c] of Object.entries(cuentas)) {
+    for (const { b, r } of c.boletos) if (["ganada", "perdida", "devuelta"].includes(r.estado)) sumar(de(partidoBoleto(b)), u, r.cobro - b.fichas, 1);
+    if (c.legado && c.legado.detalle.length) sumar(de(c.legado.detalle[0].a), u, c.legado.cobrado - c.legado.apostado, c.legado.detalle.length);
+  }
+  return [...J.values()].sort((x, y) => y.fecha.localeCompare(x.fecha));
+}
+function calcularLogros() {
+  const res = {};
+  const reyes = new Set(jornadas.map(j => [...j.netos].sort((x, y) => y[1].neto - x[1].neto)[0]).filter(x => x && x[1].neto > 0).map(x => x[0]));
+  for (const [u, c] of Object.entries(cuentas)) {
+    const l = [];
+    const liquidados = c.boletos.filter(x => x.r.estado === "ganada" || x.r.estado === "perdida").sort((x, y) => String(x.r.hora).localeCompare(String(y.r.hora)));
+    if (reyes.has(u)) l.push("rey");
+    if (liquidados.length >= 3 && liquidados.slice(-3).every(x => x.r.estado === "ganada")) l.push("racha");
+    if (c.boletos.some(x => x.r.estado === "ganada" && x.b.sel.length >= 5)) l.push("combi");
+    if (c.boletos.some(x => x.r.estado === "ganada" && x.r.cobro >= 1000)) l.push("pelotazo");
+    if (liquidados.length >= 5 && liquidados.filter(x => x.r.estado === "ganada").length / liquidados.length >= 0.6) l.push("tipster");
+    res[u] = l;
+  }
+  return res;
+}
+// Cuántas apuestas lleva cada opción de cada mercado (anónimo)
+function calcularPopularidad() {
+  const m = new Map();
+  const sumar = (aid, op) => { const a = porIdM[aid]; if (!a) return; if (!m.has(aid)) m.set(aid, a.opciones.map(() => 0)); m.get(aid)[op]++; };
+  for (const c of Object.values(cuentas)) for (const { b, r } of c.boletos) if (r.estado !== "invalida") b.sel.forEach(s => sumar(s.a, s.op));
+  for (const d of Object.values(votos)) for (const [aid, p] of Object.entries((d && d.picks) || {})) { const a = porIdM[aid]; if (a && !esCuotas(a) && pickValido(a, p)) sumar(aid, p.op); }
+  return m;
+}
+const htmlLogros = u => (logros[u] || []).length ? `<span class="lb-logros">${logros[u].map(k => `<span title="${esc(LOGROS[k][1])}">${LOGROS[k][0]}</span>`).join("")}</span>` : "";
 
 // ---------- Generador de mercados con cuotas para el próximo partido ----------
 function redondear(c) {
@@ -232,14 +433,14 @@ const deProb = (ps, margen) => ps.map(p => redondear(margen / Math.max(p, 0.004)
 const dosOpciones = (p, a = "Sí", b = "No") => { const [x, y] = deProb([p, 1 - p], 0.92); return [[a, x], [b, y]]; };
 
 function proximoPartido() {
-  if (typeof partidos === "undefined" || typeof porId === "undefined") return null;
+  if (!hayWeb()) return null;
   const p = partidos.filter(x => x.nuestros === null || x.nuestros === undefined).sort((a, b) => a.fecha.localeCompare(b.fecha))[0];
   if (!p) return null;
-  const corto = (p.rival.match(/\(([^)]+)\)/) || [])[1] || p.rival.replace(/^Facultad de\s+/i, "");
+  const corto = cortoDe(p);
   const conv = typeof convocatoria !== "undefined" && convocatoria.partido === p.fecha && convocatoria.jugadores.length > 0;
   const lista = conv ? convocatoria.jugadores.map(id => porId[id]).filter(Boolean) : [...jugadores];
   const cierre = new Date(`${p.fecha}T${p.hora || "00:00"}`).toISOString();
-  return { p, corto, lista, conv, pid: `${p.fecha}-${slug(corto)}`, nombre: p.local ? `Laborales FC vs ${corto}` : `${corto} vs Laborales FC`, cierre };
+  return { p, corto, lista, conv, pid: pidDe(p), nombre: p.local ? `Laborales FC vs ${corto}` : `${corto} vs Laborales FC`, cierre };
 }
 const PESO_GOL = { "Delantero centro": 6, "Extremo": 4, "Centrocampista": 2.5, "Lateral derecho": 1.2, "Lateral izquierdo": 1.2, "Defensa central": 1, "Portero": 0.1 };
 const PESO_ASIST = { "Delantero centro": 2, "Extremo": 3, "Centrocampista": 3, "Lateral derecho": 2, "Lateral izquierdo": 2, "Defensa central": 0.7, "Portero": 0.2 };
@@ -264,6 +465,8 @@ function mercadosDe(c) {
   };
   const campo = c.lista.filter(j => j.posicion !== "Portero"), porteros = c.lista.filter(j => j.posicion === "Portero");
 
+  (SUPERCUOTAS[c.p.fecha] || []).forEach(s => L.push({ id: `${c.pid}-${s.clave}`, ...base, orden: 0, titulo: s.titulo, opciones: ["Sí"], cuotas: [s.cuota], cuotasMax: [s.cuota],
+    supercuota: true, cuotaAntes: s.antes, descripcion: "Solo como apuesta simple · una por persona" }));
   add("resultado", 1, `Resultado: Laborales FC vs ${c.corto}`, zip(["Laborales FC", "Empate", c.corto], [0.5, 0.22, 0.28]));
   add("goles-laborales", 2, "¿Cuántos goles marca el Laborales?", zip(["0", "1", "2", "3", "4 o más"], [0.12, 0.25, 0.27, 0.19, 0.17]));
   add("goles-rival", 3, `¿Cuántos goles marca ${c.corto}?`, zip(["0", "1", "2", "3 o más"], [0.2, 0.3, 0.27, 0.23]));
@@ -342,9 +545,11 @@ function mercadosDe(c) {
 function render() {
   const foco = document.activeElement && document.activeElement.id;
   porIdM = Object.fromEntries(mercados.map(a => [a.id, a]));
+  cacheGan = new Map(); cacheDatos = new Map();
   legado = calcularLegado();
   cuentas = {};
   for (const u of new Set([...Object.keys(votos), ...(uid ? [uid] : [])])) cuentas[u] = calcularCuenta(u);
+  jornadas = calcularJornadas(); logros = calcularLogros(); popMap = calcularPopularidad();
   limpiarSlip();
   pintarCartera(); pintarVistas(); pintarMain(); pintarSlip(); pintarRanking(); pintarAdmin();
   if (foco && foco.startsWith("lb-") && $(foco) && document.activeElement !== $(foco)) $(foco).focus();
@@ -354,7 +559,10 @@ function pintarCartera() {
   const c = miCuenta();
   $("lb-w-saldo").textContent = fmt(c.saldo);
   $("lb-w-juego").textContent = fmt(c.enJuego);
-  $("lb-w-beneficio").textContent = conSigno(c.total - SALDO_INICIAL);
+  $("lb-w-beneficio").textContent = conSigno(c.total - SALDO_INICIAL - PAGA_SEMANAL * c.pagas);
+  const mios = uid ? logros[uid] || [] : [];
+  $("lb-w-pie").innerHTML = `<span class="lb-paga">💰 Paga semanal: <b>+${fmt(PAGA_SEMANAL)} fichas</b> cada lunes · próxima el ${esc(diaTxt(proximaPaga()))}</span>
+    ${mios.length ? `<span class="lb-mis-logros">${mios.map(k => `<span title="${esc(LOGROS[k][1])}">${LOGROS[k][0]} ${esc(LOGROS[k][1].split(":")[0])}</span>`).join("")}</span>` : ""}`;
   const input = $("lb-apodo");
   if (document.activeElement !== input) input.value = uid ? apodoDe(uid) : "";
   input.disabled = !puedeApostar();
@@ -374,42 +582,164 @@ function pintarVistas() {
 function pintarMain() {
   if (!conectado && !mercados.length) { $("lb-main").innerHTML = `<div class="lb-vacio"><strong>Cargando apuestas</strong>Aparecerán aquí en un momento.</div>`; return; }
   if (vista === "mis") { $("lb-main").innerHTML = pintarMias(); return; }
-  const lista = ordenar(mercados.filter(a => vista === "apostar" ? estado(a) === "abierta" : estado(a) !== "abierta"));
-  if (!lista.length) {
-    $("lb-main").innerHTML = vista === "apostar"
-      ? `<div class="lb-vacio"><strong>No hay apuestas abiertas</strong>Se abrirán antes del próximo partido. Mientras, mira tus apuestas o los resultados.</div>`
-      : `<div class="lb-vacio"><strong>Aún no hay resultados</strong>Aquí saldrán los mercados cerrados y resueltos.</div>`;
-    return;
-  }
-  const grupos = [];
-  for (const a of lista) { const p = partidoDe(a); let g = grupos.find(x => x.p.id === p.id); if (!g) grupos.push(g = { p, items: [] }); g.items.push(a); }
-  $("lb-main").innerHTML = grupos.map(g => {
+  if (vista === "apostar") { $("lb-main").innerHTML = pintarApostar(); return; }
+  const lista = ordenar(mercados.filter(a => estado(a) !== "abierta"));
+  if (!lista.length) { $("lb-main").innerHTML = `<div class="lb-vacio"><strong>Aún no hay resultados</strong>Aquí saldrán los mercados cerrados y resueltos.</div>`; return; }
+  $("lb-main").innerHTML = agrupar(lista).map(g => {
     const legadoG = g.items.some(a => !esCuotas(a));
-    const sub = vista === "apostar" ? `Cierra ${esc(fechaTxt(g.items[0].cierre || g.p.fecha))}` : legadoG ? "Sistema antiguo · bote compartido" : `${g.items.filter(a => estado(a) === "resuelta").length} de ${g.items.length} resueltos`;
+    const sub = legadoG ? "Sistema antiguo · bote compartido" : `${g.items.filter(a => estado(a) === "resuelta").length} de ${g.items.length} resueltos`;
     return `<div class="lb-grupo"><div class="lb-grupo-cab">
       <div><span class="etiqueta">${g.p.fecha ? esc(fechaTxt(g.p.fecha)) : "Apuestas"}</span><h3>${esc(g.p.nombre)}</h3></div>
       <span class="lb-grupo-sub">${sub}</span>
-    </div>${piezasDe(g)}</div>`;
+    </div>${resumenJornada(g)}${piezasDe(g)}</div>`;
   }).join("");
 }
 
+// --- Pestaña «Apostar»: cabecera del partido, supercuota, categorías y mercados ---
+function pintarApostar() {
+  const lista = ordenar(mercados.filter(a => estado(a) === "abierta"));
+  if (!lista.length) return `<div class="lb-vacio"><strong>No hay apuestas abiertas</strong>Se abrirán antes del próximo partido. Mientras, mira tus apuestas o los resultados.</div>`;
+  return agrupar(lista).map(g => {
+    const normales = g.items.filter(a => !a.supercuota);
+    const cats = categoriasDe(normales);
+    if (!cats.some(([k]) => k === cat)) cat = cats.length ? cats[0][0] : "destacados";
+    return `<div class="lb-grupo">${cabecera(g)}${supercuotas(g)}
+      <div class="filtros lb-cats" role="toolbar" aria-label="Categorías">${cats.map(([k, t, n]) =>
+        `<button data-lb="cat" data-k="${k}" aria-pressed="${k === cat}">${t} <small>${n}</small></button>`).join("")}</div>
+      ${contenidoCategoria(normales, g)}</div>`;
+  }).join("");
+}
+function categoriasDe(items) {
+  const n = {};
+  items.forEach(a => { const c = categoriaDe(a); n[c] = (n[c] || 0) + 1; });
+  const dest = items.filter(a => DESTACADOS.includes(claveDe(a))).length;
+  return [["destacados", "Destacados", dest], ...CATEGORIAS.map(([k, t]) => [k, t, n[k] || 0])].filter(x => x[2] > 0);
+}
+function notasBloque(b, g) {
+  const enBoleto = b.items.filter(a => slip.some(s => s.a === a.id)).length;
+  const max = b.items[0].maxPorPersona, cierreB = b.items[0].cierre;
+  return [`${b.items.length} mercados`,
+    max ? `máximo ${max} jugadores por persona${uid ? ` (llevas ${usadosEnBloque(b.nombre)})` : ""}` : "",
+    estado(b.items[0]) === "abierta" && cierreB && cierreB !== g.items[0].cierre ? `cierra ${fechaTxt(cierreB)}` : "",
+    enBoleto ? `${enBoleto} en tu boleto` : ""].filter(Boolean).join(" · ");
+}
+function contenidoCategoria(items, g) {
+  const elegidos = cat === "destacados"
+    ? DESTACADOS.map(k => items.find(a => claveDe(a) === k)).filter(Boolean)
+    : items.filter(a => categoriaDe(a) === cat);
+  // Los bloques grandes (un mercado por jugador) van en tarjetas pequeñas; el resto, normales
+  const bloques = [], sueltos = [];
+  for (const a of elegidos) {
+    if (!a.bloque || cat === "destacados") { sueltos.push(a); continue; }
+    let b = bloques.find(x => x.nombre === a.bloque);
+    if (!b) bloques.push(b = { nombre: a.bloque, items: [] });
+    b.items.push(a);
+  }
+  for (const b of bloques.filter(b => b.items.length <= 4)) sueltos.push(...b.items);
+  return `${sueltos.length ? `<div class="lb-mercados">${sueltos.map(a => mercado(a)).join("")}</div>` : ""}
+    ${bloques.filter(b => b.items.length > 4).map(b => `<div class="lb-seccion">
+      <div class="lb-seccion-cab"><h4>${esc(b.nombre)}</h4><small>${esc(notasBloque(b, g))}</small></div>
+      <div class="lb-mercados lb-mini">${b.items.map(a => mercado(a, true)).join("")}</div>
+    </div>`).join("")}`;
+}
+function cuentaAtras(iso) {
+  const ms = new Date(iso) - new Date();
+  if (ms <= 0) return "Cerrando…";
+  const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60;
+  return `Cierra en <b>${d ? `${d}d ${String(h).padStart(2, "0")}h` : `${h}h ${String(m).padStart(2, "0")}m`}</b>`;
+}
+function cabecera(g) {
+  const p = partidoWeb(g.p.id);
+  const rival = p ? cortoDe(p) : g.p.nombre.replace(/Laborales FC|\bvs\b/g, "").trim();
+  const res = g.items.find(a => claveDe(a) === "resultado");
+  const cierre = (res && res.cierre) || g.p.fecha;
+  const equipo = (nombre, nuestro) => `<div class="lb-equipo">${nuestro ? `<img src="img/logo-icono.png" alt="">` : `<span class="lb-escudo">${esc(nombre.charAt(0))}</span>`}<b>${esc(nombre)}</b></div>`;
+  const eqs = !p || p.local ? [equipo("Laborales FC", true), equipo(rival)] : [equipo(rival), equipo("Laborales FC", true)];
+  const sel = res && slip.find(s => s.a === res.id);
+  const unoXdos = res ? `<div class="lb-1x2">${res.opciones.map((o, i) => `<button class="lb-hero-op${sel && sel.op === i ? " lb-sel" : ""}" data-lb="sel" data-a="${esc(res.id)}" data-i="${i}">
+      <span>${["1", "X", "2"][i] || ""} · ${esc(o)}</span><b>${cuotaTxt(res.cuotas[i])}</b></button>`).join("")}</div>` : "";
+  return `<section class="lb-hero">
+    <div class="lb-hero-top"><span>${p && p.competicion ? `${esc(p.competicion)} · ` : ""}${g.p.fecha ? esc(fechaTxt(g.p.fecha)) : ""}${p && p.campo ? ` · ${esc(p.campo)}` : ""}</span>
+      ${cierre ? `<span class="lb-cuenta">${cuentaAtras(cierre)}</span>` : ""}</div>
+    <div class="lb-vs">${eqs[0]}<span class="lb-vs-x">VS</span>${eqs[1]}</div>
+    ${unoXdos}${combiDelDia(g)}
+  </section>`;
+}
+function piernasCombi(g) {
+  const cfg = COMBI_DEL_DIA[String(g.p.id).slice(0, 10)] || [];
+  return cfg.map(([clave, opcion]) => { const a = porIdM[`${g.p.id}-${clave}`]; const i = a ? a.opciones.indexOf(opcion) : -1; return a && i >= 0 && estado(a) === "abierta" ? { a, op: i } : null; }).filter(Boolean);
+}
+function combiDelDia(g) {
+  const L = piernasCombi(g);
+  if (L.length < 2) return "";
+  const cuota = L.reduce((x, l) => x * l.a.cuotas[l.op], 1);
+  const dentro = L.every(l => slip.some(s => s.a === l.a.id && s.op === l.op));
+  return `<div class="lb-combi">
+    <div class="lb-combi-cab"><b>🔥 La combi del día</b><span>Cuota <b>${cuotaTxt(cuota)}</b></span></div>
+    <ul>${L.map(l => `<li><span>${esc(l.a.opciones[l.op])}<small>${esc(l.a.titulo)}</small></span><b>${cuotaTxt(l.a.cuotas[l.op])}</b></li>`).join("")}</ul>
+    <button class="lb-combi-btn" data-lb="combi" data-p="${esc(g.p.id)}" ${dentro ? "disabled" : ""}>${dentro ? "En tu boleto ✓" : "Añadir la combi al boleto"}</button>
+  </div>`;
+}
+function supercuotas(g) {
+  return g.items.filter(a => a.supercuota).map(a => {
+    const ya = yaTieneSuper(a), en = slip.some(s => s.a === a.id);
+    return `<article class="lb-super${en ? " lb-super-sel" : ""}">
+      <div class="lb-super-txt"><span class="lb-super-tag">⚡ Supercuota</span><h4>${esc(a.titulo)}</h4><small>${esc(a.descripcion || "")}</small></div>
+      <button class="lb-super-btn" ${ya ? "disabled" : `data-lb="sel" data-a="${esc(a.id)}" data-i="0"`}>
+        ${ya ? "Ya apostada ✓" : `${a.cuotaAntes ? `<s>${cuotaTxt(a.cuotaAntes)}</s>` : ""}<b>${cuotaTxt(a.cuotas[0])}</b>`}</button>
+    </article>`;
+  }).join("");
+}
+
+// --- Pestaña «Resultados» ---
 function piezasDe(g) {
   const sueltos = g.items.filter(a => !a.bloque), bloques = [];
   for (const a of g.items.filter(a => a.bloque)) { let b = bloques.find(x => x.nombre === a.bloque); if (!b) bloques.push(b = { nombre: a.bloque, items: [] }); b.items.push(a); }
   return `${sueltos.length ? `<div class="lb-mercados">${sueltos.map(a => mercado(a)).join("")}</div>` : ""}
     ${bloques.map(b => {
       const clave = vista + "|" + g.p.id + "|" + b.nombre;
-      const enBoleto = b.items.filter(a => slip.some(s => s.a === a.id)).length;
-      const max = b.items[0].maxPorPersona, cierreB = b.items[0].cierre;
-      const notas = [`${b.items.length} mercados`,
-        max ? `máximo ${max} jugadores por persona${uid ? ` (llevas ${usadosEnBloque(b.nombre)})` : ""}` : "",
-        vista === "apostar" && cierreB && cierreB !== g.items[0].cierre ? `cierra ${fechaTxt(cierreB)}` : "",
-        enBoleto ? `${enBoleto} en tu boleto` : ""].filter(Boolean).join(" · ");
       return `<details class="lb-bloque" data-clave="${esc(clave)}" ${bloquesAbiertos.has(clave) ? "open" : ""}>
-        <summary><span>${esc(b.nombre)}</span><small>${esc(notas)}</small></summary>
+        <summary><span>${esc(b.nombre)}</span><small>${esc(notasBloque(b, g))}</small></summary>
         <div class="lb-mercados lb-mini">${b.items.map(a => mercado(a, true)).join("")}</div>
       </details>`;
     }).join("")}`;
+}
+// Resumen anónimo de cómo fue la jornada
+function resumenJornada(g) {
+  const pid = g.p.id;
+  let n = 0, apostado = 0, pagado = 0, ganados = 0, liquidados = 0, mayor = null, mayorNeto = null;
+  for (const c of Object.values(cuentas)) {
+    for (const { b, r } of c.boletos) {
+      if (r.estado === "invalida" || partidoDe(partidoBoleto(b)).id !== pid) continue;
+      n++; apostado += b.fichas;
+      if (r.estado !== "pendiente") { liquidados++; pagado += r.cobro; }
+      if (r.estado === "ganada") { ganados++; if (!mayor || r.cobro > mayor.cobro) mayor = { cobro: r.cobro, piernas: b.sel.length }; }
+    }
+    const L = c.legado;
+    if (L && L.detalle.length && partidoDe(L.detalle[0].a).id === pid) {
+      for (const d of L.detalle) { n++; apostado += d.f; pagado += d.cobro; liquidados++; if (d.acierto) ganados++; }
+      if (!mayorNeto || L.cobrado - L.apostado > mayorNeto) mayorNeto = L.cobrado - L.apostado;
+    }
+  }
+  if (!n) return "";
+  let top = null;
+  for (const a of g.items) (popMap.get(a.id) || []).forEach((v, op) => { if (!top || v > top.v) top = { a, op, v }; });
+  const w = top ? ganadoraDe(top.a) : undefined;
+  const estadoTop = !top ? "" : w === undefined ? "⏳ pendiente" : w === top.op ? "✓ acertada" : "✗ falló";
+  const lineas = [
+    mayor ? `💰 Mayor premio: ${mayor.piernas > 1 ? `una combinada de ${mayor.piernas}` : "una simple"} que pagó <b>${fmt(mayor.cobro)}</b> fichas`
+      : mayorNeto > 0 ? `💰 El que más ganó terminó el día con <b>${conSigno(mayorNeto)}</b> fichas` : "",
+    top ? `📣 La más popular: <b>${esc(top.a.opciones[top.op])}</b> en «${esc(top.a.titulo)}» (${top.v} apuestas) · ${estadoTop}` : "",
+  ].filter(Boolean);
+  return `<div class="tarjeta lb-jornada">
+    <div class="lb-jornada-nums">
+      <div><strong>${fmt(n)}</strong><span>Apuestas</span></div>
+      <div><strong>${fmt(apostado)}</strong><span>Fichas en juego</span></div>
+      <div><strong>${fmt(pagado)}</strong><span>Fichas pagadas</span></div>
+      <div><strong>${liquidados ? Math.round(100 * ganados / liquidados) : 0} %</strong><span>Acertadas</span></div>
+    </div>
+    ${lineas.map(l => `<p>${l}</p>`).join("")}
+  </div>`;
 }
 
 function pillDe(a) {
@@ -417,29 +747,17 @@ function pillDe(a) {
   if (e === "abierta") return "";
   if (e === "cerrada") return `<span class="lb-pill lb-cerrada">Esperando resultado</span>`;
   if (e === "anulada") return `<span class="lb-pill lb-gris">Anulado</span>`;
+  if (ganadoraDe(a) === -1) return `<span class="lb-pill lb-mal">No se cumplió</span>`;
   return `<span class="lb-pill lb-ok">Resuelto</span>`;
-}
-
-// Quién ha apostado a cada opción (en boletos válidos)
-function apostantes(a) {
-  const por = a.opciones.map(() => []);
-  for (const [u, c] of Object.entries(cuentas)) {
-    for (const { b, r } of c.boletos) {
-      if (r.estado === "invalida") continue;
-      const s = b.sel.find(x => x.a === a.id);
-      if (s && !por[s.op].includes(u)) por[s.op].push(u);
-    }
-    const p = votos[u] && votos[u].picks && votos[u].picks[a.id];
-    if (!esCuotas(a) && pickValido(a, p) && !por[p.op].includes(u)) por[p.op].push(u);
-  }
-  return por;
 }
 
 function mercado(a, mini = false) {
   const e = estado(a), w = ganadoraDe(a), cuotas = esCuotas(a);
   const enSlip = slip.find(s => s.a === a.id);
-  const quien = apostantes(a), total = quien.reduce((s, x) => s + x.length, 0);
+  const pop = popMap.get(a.id) || a.opciones.map(() => 0), total = pop.reduce((x, y) => x + y, 0);
+  const verPop = total >= 3; // con menos apuestas no se enseña el %, para que no se sepa quién ha sido
   const ops = a.opciones.map((o, i) => {
+    const pct = total ? Math.round(100 * pop[i] / total) : 0;
     const clases = ["lb-op",
       enSlip && enSlip.op === i ? "lb-sel" : "",
       w === i ? "lb-ganadora" : "",
@@ -449,18 +767,18 @@ function mercado(a, mini = false) {
     const cuota = editando === a.id
       ? `<input class="lb-cuota-input" type="number" min="1.01" step="0.05" value="${a.cuotas[i]}" data-cuota="${i}" aria-label="Cuota de ${esc(o)}">`
       : cuotas ? `<span class="lb-cuota">${cuotaTxt(a.cuotas[i])}</span>` : "";
+    const barra = verPop && editando !== a.id ? `<span class="lb-pop" title="${pct} % de las apuestas"><i style="width:${pct}%"></i></span><span class="lb-pop-num">${pct} %</span>` : "";
     return editando === a.id
       ? `<label class="${clases}"><span class="lb-op-nombre">${esc(o)}</span>${cuota}</label>`
-      : `<button class="${clases}" ${accion ? `${accion} data-a="${esc(a.id)}" data-i="${i}"` : "disabled"}><span class="lb-op-nombre">${esc(o)}</span>${cuota}</button>`;
+      : `<button class="${clases}" ${accion ? `${accion} data-a="${esc(a.id)}" data-i="${i}"` : "disabled"}><span class="lb-op-nombre">${esc(o)}</span>${cuota}${barra}</button>`;
   }).join("");
   const muchas = a.opciones.length > 5;
-  const lista = total ? `<details class="lb-quien"><summary>Quién ha apostado (${total})</summary><ul>${a.opciones.map((o, i) => quien[i].length
-    ? `<li><b>${esc(o)}:</b> ${quien[i].map(u => `<span class="lb-chip">${esc(nombreDe(u))}</span>`).join("")}</li>` : "").join("")}</ul></details>` : "";
-  return `<article class="tarjeta lb-mercado${muchas && !mini ? " lb-ancho" : ""}" data-m="${esc(a.id)}">
-    <div class="lb-m-cab"><h4>${esc(a.titulo)}</h4>${pillDe(a)}</div>
-    ${a.descripcion ? `<p class="lb-desc">${esc(a.descripcion)}</p>` : ""}
-    <div class="lb-ops${muchas ? " lb-muchas" : ""}">${ops}</div>
-    ${lista}${esAdmin && cuotas ? adminFila(a) : ""}
+  return `<article class="tarjeta lb-mercado${muchas && !mini ? " lb-ancho" : ""}${a.supercuota ? " lb-mercado-super" : ""}" data-m="${esc(a.id)}">
+    <div class="lb-m-cab"><h4>${a.supercuota ? "⚡ " : ""}${esc(a.titulo)}</h4>${pillDe(a)}</div>
+    ${a.descripcion && !mini ? `<p class="lb-desc">${esc(a.descripcion)}</p>` : ""}
+    <div class="lb-ops${muchas ? " lb-muchas" : ""}${verPop ? " lb-con-pop" : ""}">${ops}</div>
+    ${total ? `<small class="lb-total">👥 ${total} ${total === 1 ? "apuesta" : "apuestas"}</small>` : ""}
+    ${esAdmin && cuotas ? adminFila(a) : ""}
   </article>`;
 }
 
@@ -468,7 +786,7 @@ function adminFila(a) {
   const e = estado(a);
   let b;
   if (borrando === a.id) b = `<span>¿Borrar este mercado? Los boletos que lo lleven dejarán de contar.</span><button class="lb-btn lb-peligro" data-lb="borrar-si" data-a="${esc(a.id)}">Sí, borrar</button><button class="lb-btn" data-lb="borrar-no">No</button>`;
-  else if (resolviendo === a.id) b = `<span>Toca la opción ganadora.</span><button class="lb-btn" data-lb="resolver-no">Cancelar</button>`;
+  else if (resolviendo === a.id) b = `<span>Toca la opción ganadora.</span>${a.opciones.length === 1 ? `<button class="lb-btn" data-lb="ganar" data-a="${esc(a.id)}" data-i="-1">No se cumple</button>` : ""}<button class="lb-btn" data-lb="resolver-no">Cancelar</button>`;
   else if (editando === a.id) b = `<button class="lb-btn lb-primario" data-lb="cuotas-ok" data-a="${esc(a.id)}">Guardar cuotas</button><button class="lb-btn" data-lb="cuotas-no">Cancelar</button>`;
   else b = [
     e === "abierta" ? `<button class="lb-btn" data-lb="cuotas" data-a="${esc(a.id)}">Cuotas</button>` : "",
@@ -480,6 +798,7 @@ function adminFila(a) {
   return `<div class="lb-admin-fila">${b}</div>`;
 }
 
+// --- Pestaña «Mis apuestas» ---
 const ESTADO_TXT = { pendiente: ["lb-cerrada", "En juego"], ganada: ["lb-ok", "Ganada"], perdida: ["lb-mal", "Perdida"], devuelta: ["lb-gris", "Devuelta"], invalida: ["lb-gris", "No válida"] };
 const ICONO = { ganada: ["lb-ico-ok", "✓"], perdida: ["lb-ico-ko", "✗"], pendiente: ["lb-ico-pend", "•"], anulada: ["lb-ico-pend", "–"] };
 function pintarMias() {
@@ -493,14 +812,16 @@ function pintarMias() {
       : r.estado === "perdida" ? `Cobrado <b>0</b>`
       : r.estado === "invalida" ? `No contó: no había saldo o llegó tarde`
       : `Posible ganancia <b class="lb-ganancia">${fmt(b.fichas * cuota)}</b>`;
+    const esSuper = b.sel.some(s => porIdM[s.a].supercuota);
     return `<article class="tarjeta lb-ticket lb-t-${r.estado}">
-      <div class="lb-t-cab"><b>${b.sel.length > 1 ? `Combinada · ${b.sel.length}` : "Simple"}</b><span class="lb-pill ${cls}">${txt}</span></div>
+      <div class="lb-t-cab"><b>${esSuper ? "⚡ Supercuota" : b.sel.length > 1 ? `Combinada · ${b.sel.length}` : "Simple"}</b><span class="lb-pill ${cls}">${txt}</span></div>
       <ul class="lb-t-sels">${b.sel.map((s, i) => {
         const a = porIdM[s.a], [ic, sim] = ICONO[r.legs[i]] || ICONO.pendiente;
-        return `<li><span class="${ic}">${sim}</span><div><b>${esc(a.opciones[s.op])}</b><small>${esc(a.titulo)} · ${esc(partidoDe(a).nombre)}</small></div><span class="lb-cuota">${cuotaTxt(s.c)}</span></li>`;
+        return `<li><span class="${ic}">${sim}</span><div><b>${esc(a.supercuota ? a.titulo : a.opciones[s.op])}</b><small>${esc(a.supercuota ? partidoDe(a).nombre : `${a.titulo} · ${partidoDe(a).nombre}`)}</small></div><span class="lb-cuota">${cuotaTxt(s.c)}</span></li>`;
       }).join("")}</ul>
       <div class="lb-t-pie"><span>Apostado <b>${fmt(b.fichas)}</b></span><span>Cuota <b>${cuotaTxt(cuota)}</b></span><span>${pie}</span></div>
-      <small class="lb-t-fecha">${b.t ? esc(fechaTxt(b.t)) : ""}</small>
+      <div class="lb-t-fin"><small class="lb-t-fecha">${b.t ? esc(fechaTxt(b.t)) : ""}</small>
+        ${r.estado !== "invalida" ? `<button class="lb-compartir" data-lb="compartir" data-b="${esc(b.id)}" type="button">Compartir en WhatsApp</button>` : ""}</div>
     </article>`;
   }).join("");
   const L = c.legado;
@@ -511,6 +832,19 @@ function pintarMias() {
     </article>` : "";
   if (!tickets && !viejo) return `<div class="lb-vacio"><strong>Aún no has apostado</strong>Ve a «Apostar», toca una cuota y se añadirá a tu boleto.</div>`;
   return `<div class="lb-tickets">${tickets}${viejo}</div>`;
+}
+function compartir(id) {
+  const it = miCuenta().boletos.find(x => x.b.id === id);
+  if (!it) return;
+  const { b, r } = it, cuota = cuotaTotal(b.sel);
+  const ico = { ganada: "✅", perdida: "❌", pendiente: "⏳", anulada: "➖" };
+  const tipo = b.sel.some(s => porIdM[s.a].supercuota) ? "Supercuota" : b.sel.length > 1 ? `Combinada de ${b.sel.length}` : "Apuesta";
+  const lineas = b.sel.map((s, i) => { const a = porIdM[s.a]; return `${ico[r.legs[i]] || "⏳"} ${a.supercuota ? a.titulo : `${a.opciones[s.op]} · ${a.titulo}`} (${cuotaTxt(s.c)})`; });
+  const final = r.estado === "ganada" ? `💰 Aposté ${fmt(b.fichas)} y he cobrado ${fmt(r.cobro)} fichas`
+    : r.estado === "perdida" ? `💀 Aposté ${fmt(b.fichas)} fichas y se fueron`
+    : `🎯 Apuesto ${fmt(b.fichas)} fichas para cobrar ${fmt(b.fichas * cuota)}`;
+  const texto = `🎟️ ${tipo} en LaboralesBet · cuota ${cuotaTxt(cuota)}\n${lineas.join("\n")}\n${final}\n${location.href.split("#")[0]}#laboralesbet`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
 }
 
 // ---------- Boleto ----------
@@ -532,7 +866,7 @@ function pasaDelMaximo() {
 function limpiarSlip() {
   if (!conectado) return; // hasta que lleguen los mercados no se sabe qué sigue abierto
   const antes = slip.length;
-  slip = slip.filter(s => { const a = porIdM[s.a]; return a && esCuotas(a) && estado(a) === "abierta" && s.op < a.opciones.length; });
+  slip = slip.filter(s => { const a = porIdM[s.a]; return a && esCuotas(a) && estado(a) === "abierta" && s.op < a.opciones.length && !(a.supercuota && yaTieneSuper(a)); });
   if (slip.length !== antes && mercados.length) guardarSlip();
   if (!slip.length) slipAbierto = false;
 }
@@ -557,7 +891,7 @@ function pintarSlip() {
   if (!slip.length) { el.innerHTML = cab + `<div class="lb-slip-cuerpo"><p class="lb-slip-vacio">Toca una cuota para añadirla. Si eliges varias de distintos mercados, haces una combinada: las cuotas se multiplican.</p></div>`; return; }
   const falta = !apodoDe(uid) ? "Ponte un apodo arriba para poder apostar." : r.totalApostado > c.saldo ? `No te llega: tienes ${fmt(c.saldo)} fichas.` : "";
   el.innerHTML = cab + `<div class="lb-slip-cuerpo">
-    <ul class="lb-sels">${r.sels.map((x, i) => `<li><div><b>${esc(x.a.opciones[x.op])}</b><small>${esc(x.a.titulo)}</small></div><span class="lb-cuota">${cuotaTxt(x.c)}</span><button class="lb-quitar" data-lb="quitar" data-i="${i}" aria-label="Quitar">✕</button></li>`).join("")}</ul>
+    <ul class="lb-sels">${r.sels.map((x, i) => `<li${x.a.supercuota ? ` class="lb-sel-super"` : ""}><div><b>${esc(x.a.supercuota ? `⚡ ${x.a.titulo}` : x.a.opciones[x.op])}</b><small>${esc(x.a.supercuota ? "Supercuota · va sola" : x.a.titulo)}</small></div><span class="lb-cuota">${cuotaTxt(x.c)}</span><button class="lb-quitar" data-lb="quitar" data-i="${i}" aria-label="Quitar">✕</button></li>`).join("")}</ul>
     ${slip.length > 1 ? `<div class="lb-modo"><button data-lb="modo" data-v="0" aria-pressed="${!simples}">Combinada</button><button data-lb="modo" data-v="1" aria-pressed="${simples}">Simples</button></div>` : ""}
     <div class="lb-stake">
       <input id="lb-stake" type="number" inputmode="numeric" min="1" step="1" value="${r.s || ""}" data-lb="stake" aria-label="Fichas${r.separadas ? " por apuesta" : ""}">
@@ -582,18 +916,37 @@ function refrescarResumen() {
   if ($("lb-slip-aviso")) { $("lb-slip-aviso").textContent = falta; $("lb-slip-aviso").hidden = !falta; }
 }
 
+// ---------- Clasificación ----------
 function pintarRanking() {
+  const jd = jornadas[0];
+  $("lb-rank-tabs").innerHTML = [["general", "General"], ["jornada", "Última jornada"]].map(([k, t]) =>
+    `<button data-lb="rank" data-k="${k}" aria-pressed="${k === rankModo}" ${k === "jornada" && !jd ? "disabled" : ""}>${t}</button>`).join("");
+  const nombre = u => esc(u === uid && !apodoDe(uid) ? "Tú (sin apodo)" : nombreDe(u));
+  if (rankModo === "jornada" && jd) {
+    const filas = [...jd.netos].filter(([u]) => apodoDe(u) || u === uid).sort((x, y) => y[1].neto - x[1].neto);
+    $("lb-rank-texto").textContent = `${jd.nombre}: lo que ganó o perdió cada uno en ese partido.`;
+    $("lb-ranking").innerHTML = filas.length ? filas.map(([u, x], i) => `<li class="${u === uid ? "lb-yo" : ""}">
+      <span class="lb-pos">${i + 1}</span>
+      <span class="lb-quien-r"><b>${nombre(u)}${htmlLogros(u)}${i === 0 && x.neto > 0 ? `<span class="lb-tag lb-lider">Rey de la jornada</span>` : ""}${u === uid ? `<span class="lb-tag lb-tu">Tú</span>` : ""}</b>
+        <small>${x.n} ${x.n === 1 ? "apuesta" : "apuestas"}</small></span>
+      <span class="lb-saldo ${x.neto > 0 ? "lb-pos-num" : x.neto < 0 ? "lb-neg-num" : ""}">${conSigno(x.neto)}<small>fichas</small></span>
+    </li>`).join("") : `<li class="lb-nadie">Nadie apostó en esta jornada.</li>`;
+    return;
+  }
+  $("lb-rank-texto").textContent = "Saldo más lo que tienes en juego. Todos empezáis con 1.000 fichas y cobráis la paga cada lunes.";
   const ids = Object.keys(cuentas).filter(u => apodoDe(u) || u === uid);
   if (!ids.length) { $("lb-ranking").innerHTML = `<li class="lb-nadie">Todavía no hay nadie.</li>`; return; }
   const filas = ids.map(u => ({ u, ...cuentas[u] })).sort((x, y) => y.total - x.total || y.ganados - x.ganados);
   $("lb-ranking").innerHTML = filas.map((f, i) => `<li class="${f.u === uid ? "lb-yo" : ""}">
     <span class="lb-pos">${i + 1}</span>
-    <span class="lb-quien-r"><b>${esc(f.u === uid && !apodoDe(uid) ? "Tú (sin apodo)" : nombreDe(f.u))}${i === 0 && filas.length > 1 ? `<span class="lb-tag lb-lider">Líder</span>` : ""}${i === filas.length - 1 && filas.length >= 3 ? `<span class="lb-tag lb-farolillo">Farolillo rojo</span>` : ""}${f.u === uid ? `<span class="lb-tag lb-tu">Tú</span>` : ""}</b>
+    <span class="lb-quien-r"><b>${nombre(f.u)}${htmlLogros(f.u)}${i === 0 && filas.length > 1 ? `<span class="lb-tag lb-lider">Líder</span>` : ""}${i === filas.length - 1 && filas.length >= 3 ? `<span class="lb-tag lb-farolillo">Farolillo rojo</span>` : ""}${f.u === uid ? `<span class="lb-tag lb-tu">Tú</span>` : ""}</b>
       <small>${f.enJuego ? `${fmt(f.enJuego)} en juego · ` : ""}${f.jugados ? `${f.ganados}/${f.jugados} boletos ganados` : f.legado ? "Viene del amistoso" : "Sin apuestas todavía"}</small></span>
     <span class="lb-saldo">${fmt(f.total)}<small>fichas</small></span>
   </li>`).join("");
 }
 
+// ---------- Organizador ----------
+const CAMPOS_DATOS = ["nuestros", "suyos", "corners-0", "corners-1", "primerCorner", "fueras-0", "fueras-1", "fuerasCrispin", "tarjetas-0", "tarjetas-1", "roja"];
 function pintarAdmin() {
   $("lb-admin").hidden = !esAdmin;
   $("lb-acceso").textContent = esAnonimo ? "Acceso organizador" : "Salir del modo organizador";
@@ -608,6 +961,18 @@ function pintarAdmin() {
     $("lb-gen").disabled = !nuevas.length;
   }
   $("lb-lista-partidos").innerHTML = [...new Set(mercados.filter(esCuotas).map(a => partidoDe(a).nombre))].map(n => `<option value="${esc(n)}"></option>`).join("");
+  const sel = $("lb-d-partido");
+  if (document.activeElement && document.activeElement.closest && document.activeElement.closest("#lb-form-datos")) return;
+  const pids = [...new Map(mercados.filter(esCuotas).map(a => [partidoDe(a).id, partidoDe(a)])).values()].sort((x, y) => String(y.fecha).localeCompare(String(x.fecha)));
+  const actual = sel.value;
+  sel.innerHTML = pids.map(p => `<option value="${esc(p.id)}">${esc(p.nombre)}</option>`).join("");
+  if (pids.some(p => p.id === actual)) sel.value = actual;
+  rellenarDatos();
+}
+function rellenarDatos() {
+  const d = datosAdmin[$("lb-d-partido").value] || {};
+  const val = k => { const [c, i] = k.split("-"); const v = i === undefined ? d[c] : (d[c] || [])[+i]; return v === null || v === undefined ? "" : String(v); };
+  CAMPOS_DATOS.forEach(k => { const el = $("lb-d-" + k); if (el) el.value = val(k); });
 }
 
 // ---------- Escrituras ----------
@@ -642,6 +1007,7 @@ function apostar() {
   if (r.s < 1) { toast("Pon al menos 1 ficha."); return; }
   if (r.totalApostado > c.saldo) { toast(`No te llega el saldo: tienes ${fmt(c.saldo)} fichas.`); return; }
   if (r.sels.some(x => estado(x.a) !== "abierta")) { toast("Algún mercado ya se ha cerrado."); render(); return; }
+  if (r.sels.some(x => x.a.supercuota) && r.sels.length > 1) { toast("La supercuota solo se puede apostar sola."); return; }
   const tope = pasaDelMaximo();
   if (tope) { toast(tope); return; }
   const t = new Date().toISOString();
@@ -654,6 +1020,24 @@ function apostar() {
     render();
   });
 }
+function elegir(a, i) {
+  const ya = slip.findIndex(s => s.a === a.id);
+  if (a.supercuota) {
+    if (yaTieneSuper(a)) { toast("Ya has apostado a esta supercuota."); return; }
+    if (ya >= 0) { slip.splice(ya, 1); return; }
+    if (slip.length) toast("La supercuota va sola: he quitado lo demás del boleto.");
+    slip = [{ a: a.id, op: 0 }]; simples = false;
+    return;
+  }
+  const sup = slip.findIndex(s => porIdM[s.a] && porIdM[s.a].supercuota);
+  if (sup >= 0) { slip.splice(sup, 1); toast("La supercuota va sola: la he quitado del boleto."); }
+  const j = slip.findIndex(s => s.a === a.id);
+  if (j >= 0 && slip[j].op === i) slip.splice(j, 1);
+  else if (j >= 0) slip[j] = { a: a.id, op: i };
+  else if (slip.length >= MAX_SELECCIONES) toast(`Máximo ${MAX_SELECCIONES} selecciones por boleto.`);
+  else if (a.maxPorPersona && usadosEnBloque(a.bloque, a.id) >= a.maxPorPersona) toast(`En «${a.bloque}» puedes apostar como mucho a ${a.maxPorPersona} jugadores.`);
+  else slip.push({ a: a.id, op: i });
+}
 
 // ---------- Eventos ----------
 function enlazarEventos() {
@@ -663,15 +1047,17 @@ function enlazarEventos() {
     const acc = b.dataset.lb, a = porIdM[b.dataset.a];
     switch (acc) {
       case "vista": vista = b.dataset.k; resolviendo = editando = borrando = null; render(); break;
-      case "sel": {
-        const i = +b.dataset.i, ya = slip.findIndex(s => s.a === a.id);
-        if (ya >= 0 && slip[ya].op === i) slip.splice(ya, 1);
-        else if (ya >= 0) slip[ya] = { a: a.id, op: i };
-        else if (slip.length >= MAX_SELECCIONES) { toast(`Máximo ${MAX_SELECCIONES} selecciones por boleto.`); break; }
-        else if (a.maxPorPersona && usadosEnBloque(a.bloque, a.id) >= a.maxPorPersona) { toast(`En «${a.bloque}» puedes apostar como mucho a ${a.maxPorPersona} jugadores.`); break; }
-        else slip.push({ a: a.id, op: i });
-        guardarSlip(); render(); break;
+      case "cat": cat = b.dataset.k; render(); break;
+      case "rank": rankModo = b.dataset.k; pintarRanking(); break;
+      case "sel": elegir(a, +b.dataset.i); guardarSlip(); render(); break;
+      case "combi": {
+        const g = agrupar(mercados.filter(x => partidoDe(x).id === b.dataset.p))[0];
+        const L = g ? piernasCombi(g) : [];
+        if (L.length < 2) break;
+        slip = L.map(l => ({ a: l.a.id, op: l.op })); simples = false; slipAbierto = true;
+        guardarSlip(); render(); toast("La combi del día está en tu boleto"); break;
       }
+      case "compartir": compartir(b.dataset.b); break;
       case "quitar": slip.splice(+b.dataset.i, 1); guardarSlip(); render(); break;
       case "vaciar": slip = []; guardarSlip(); render(); break;
       case "modo": simples = b.dataset.v === "1"; render(); break;
@@ -682,7 +1068,12 @@ function enlazarEventos() {
       case "reabrir": cambiarMercado(a.id, { estado: "abierta", ganadora: null, resuelta: null, cierre: null }, "Mercado reabierto"); break;
       case "resolver": resolviendo = a.id; editando = borrando = null; render(); break;
       case "resolver-no": resolviendo = null; render(); break;
-      case "ganar": resolviendo = null; cambiarMercado(a.id, { estado: "resuelta", ganadora: +b.dataset.i, resuelta: new Date().toISOString() }, `Gana ${a.opciones[+b.dataset.i]}`); break;
+      case "ganar": {
+        const i = +b.dataset.i;
+        resolviendo = null;
+        cambiarMercado(a.id, { estado: "resuelta", ganadora: i, resuelta: new Date().toISOString() }, i < 0 ? "No se cumple" : `Gana ${a.opciones[i]}`);
+        break;
+      }
       case "anular": cambiarMercado(a.id, { estado: "anulada", ganadora: null, resuelta: new Date().toISOString() }, "Mercado anulado: cuenta como cuota 1"); break;
       case "cuotas": editando = a.id; resolviendo = borrando = null; render(); break;
       case "cuotas-no": editando = null; render(); break;
@@ -731,6 +1122,22 @@ function enlazarEventos() {
     nuevas.forEach(({ id, ...datos }) => lote.set(doc(db, "apuestas", id), datos));
     try { await lote.commit(); toast(`${nuevas.length} mercados creados`); vista = "apostar"; render(); } catch (e) { fallo(e); }
   });
+  $("lb-d-partido").addEventListener("change", rellenarDatos);
+  $("lb-form-datos").addEventListener("submit", async ev => {
+    ev.preventDefault();
+    const pid = $("lb-d-partido").value;
+    if (!pid) return;
+    const num = k => { const v = $("lb-d-" + k).value; return v === "" ? null : Math.max(0, Math.floor(Number(v))); };
+    const parOk = k => { const x = num(k + "-0"), y = num(k + "-1"); return x === null || y === null ? null : [x, y]; };
+    const roja = $("lb-d-roja").value;
+    const datos = {
+      partidoId: pid, nuestros: num("nuestros"), suyos: num("suyos"),
+      corners: parOk("corners"), primerCorner: $("lb-d-primerCorner").value || null,
+      fueras: parOk("fueras"), fuerasCrispin: num("fuerasCrispin"),
+      tarjetas: parOk("tarjetas"), roja: roja === "" ? null : roja === "si",
+    };
+    try { await setDoc(doc(db, "apuestas", "_datos-" + pid), datos); toast("Datos guardados: los mercados se resuelven solos"); } catch (e) { fallo(e); }
+  });
   $("lb-form-crear").addEventListener("submit", async ev => {
     ev.preventDefault();
     const titulo = $("lb-c-titulo").value.trim();
@@ -775,7 +1182,10 @@ function arrancar() {
   const listo = () => { if (!conectado) { conectado = true; clearTimeout(espera); aviso(""); } };
   const error = e => { console.error(e); clearTimeout(espera); aviso("Se ha perdido la conexión con las apuestas. Recarga la página."); };
   onSnapshot(collection(db, "apuestas"), s => {
-    mercados = s.docs.map(d => ({ id: d.id, ...d.data() })).filter(a => typeof a.titulo === "string" && Array.isArray(a.opciones) && a.opciones.length >= 2
+    const docs = s.docs.map(d => ({ id: d.id, ...d.data() }));
+    datosAdmin = {};
+    docs.filter(d => d.id.startsWith("_datos-")).forEach(d => { datosAdmin[d.partidoId || d.id.slice(7)] = d; });
+    mercados = docs.filter(a => typeof a.titulo === "string" && Array.isArray(a.opciones) && a.opciones.length >= (a.supercuota ? 1 : 2)
       && (!esCuotas(a) || (Array.isArray(a.cuotas) && a.cuotas.length === a.opciones.length)));
     listo(); render();
   }, error);
@@ -783,7 +1193,7 @@ function arrancar() {
     votos = {}; s.docs.forEach(d => { votos[d.id] = d.data(); });
     listo(); render();
   }, error);
-  // Los mercados se cierran solos al empezar el partido
+  // Cuenta atrás y cierre automático de los mercados al empezar el partido
   setInterval(() => { if (mercados.some(a => esCuotas(a) && a.cierre && a.estado === "abierta")) render(); }, 30000);
 }
 arrancar();
