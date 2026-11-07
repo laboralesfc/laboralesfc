@@ -100,7 +100,7 @@
   .jugador .cuerpo { padding: .8rem 1rem 1rem; }
   .jugador .nombre { font-weight: 700; font-size: 1.05rem; }
   .jugador .pos { color: var(--texto-suave); font-size: .85rem; }
-  .jugador .stats { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: .7rem; border-top: 1px solid var(--linea); padding-top: .6rem; text-align: center; }
+  .jugador .stats { display: grid; grid-template-columns: repeat(4, 1fr); margin-top: .7rem; border-top: 1px solid var(--linea); padding-top: .6rem; text-align: center; }
   .jugador .stats strong { display: block; font-size: 1.1rem; }
   .jugador .stats span { font-size: .7rem; color: var(--texto-suave); text-transform: uppercase; }
 
@@ -198,90 +198,118 @@
   #lb [hidden] { display: none !important; }
   .lb-bet { color: var(--acento); }
   .lb-aviso { margin-bottom: 1rem; padding: .7rem 1rem; border-radius: 10px; background: var(--tarjeta-2); border: 1px dashed var(--linea); color: var(--texto-suave); font-size: .92rem; }
-  .lb-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 1.5rem; align-items: start; }
-  .lb-main { display: grid; gap: 1rem; min-width: 0; }
-  .lb-cartera { padding: 1rem 1.1rem; display: grid; gap: .7rem; border-color: var(--acento); }
+  .lb-cartera { padding: 1rem 1.1rem; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: .8rem 1.5rem; align-items: center; border-color: var(--acento); margin-bottom: 1rem; }
   .lb-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
   .lb-nums div { display: grid; }
   .lb-nums strong { font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: 1.8rem; line-height: 1.05; font-variant-numeric: tabular-nums; }
   .lb-nums .lb-grande strong { color: var(--acento); }
   .lb-nums span { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--texto-suave); }
-  .lb-partido { margin: -.3rem 0 0; font-size: .82rem; color: var(--texto-suave); }
   .lb-apodo { display: flex; gap: .4rem; }
-  .lb-apodo input, .lb-crear input, .lb-crear textarea, .lb-stake input { font: inherit; color: var(--texto); background: var(--tarjeta-2); border: 1px solid var(--linea); border-radius: 8px; padding: .45rem .65rem; min-width: 0; }
+  .lb-apodo input, .lb-crear input, .lb-crear textarea, .lb-stake input, .lb-cuota-input { font: inherit; color: var(--texto); background: var(--tarjeta-2); border: 1px solid var(--linea); border-radius: 8px; padding: .45rem .65rem; min-width: 0; }
   .lb-apodo input { flex: 1; }
   .lb-btn { font: inherit; font-weight: 600; font-size: .9rem; color: var(--texto); background: var(--tarjeta-2); border: 1px solid var(--linea); border-radius: 8px; padding: .45rem .85rem; cursor: pointer; }
   .lb-btn:hover { border-color: var(--texto-suave); }
   .lb-btn.lb-primario { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); }
   .lb-btn.lb-peligro { color: var(--rojo); }
   .lb-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .lb-btn-ancho { width: 100%; padding: .75rem; font-size: 1rem; }
+  .lb-vistas { margin-bottom: 1.2rem; }
   .filtros button small { opacity: .7; }
-  .lb-grupos { display: grid; gap: 2rem; }
+  .lb-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.5rem; align-items: start; }
+  .lb-main { display: grid; gap: 2rem; min-width: 0; }
   .lb-grupo { display: grid; gap: .9rem; }
   .lb-grupo-cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: .4rem 1rem; border-bottom: 2px solid var(--acento); padding-bottom: .5rem; }
   .lb-grupo-cab h3 { font-size: clamp(1.4rem, 4vw, 1.8rem); line-height: 1.05; }
-  .lb-presupuesto { font-size: .88rem; color: var(--texto-suave); }
-  .lb-presupuesto strong { font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: 1.4rem; color: var(--acento); font-variant-numeric: tabular-nums; }
-  .lb-lista { display: grid; gap: 1rem; }
-  .lb-boleto { overflow: hidden; }
-  .lb-b-cab { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3rem 1rem; padding: .6rem 1.1rem; border-bottom: 1px dashed var(--linea); font-size: .8rem; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
-  .lb-pill { display: inline-flex; align-items: center; gap: .35rem; font-weight: 700; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; }
-  .lb-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-  .lb-pill.lb-abierta { color: var(--verde); }
-  .lb-pill.lb-cerrada { color: var(--acento); }
-  .lb-pill.lb-gris { color: var(--texto-suave); }
-  .lb-b-cuerpo { padding: 1rem 1.1rem 1.1rem; display: grid; gap: .8rem; }
-  .lb-b-cuerpo h4 { margin: 0; font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: 1.35rem; line-height: 1.1; letter-spacing: .01em; }
-  .lb-desc { margin: -.4rem 0 0; color: var(--texto-suave); font-size: .93rem; }
-  .lb-opciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .5rem; }
-  .lb-opciones.lb-muchas { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: .4rem; }
-  .lb-op { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: .15rem .6rem; text-align: left; font: inherit; color: var(--texto); background: var(--tarjeta-2); border: 1px solid var(--linea); border-radius: 10px; padding: .6rem .75rem .7rem; overflow: hidden; cursor: pointer; }
-  .lb-muchas .lb-op { padding: .45rem .6rem .55rem; }
+  .lb-grupo-sub { font-size: .85rem; color: var(--texto-suave); }
+  .lb-mercados { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: .7rem; }
+  .lb-mercado { padding: .85rem .95rem .95rem; display: grid; gap: .55rem; align-content: start; min-width: 0; }
+  .lb-mercado.lb-ancho { grid-column: 1 / -1; }
+  .lb-m-cab { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+  .lb-m-cab h4 { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.25; }
+  .lb-desc { margin: -.3rem 0 0; color: var(--texto-suave); font-size: .84rem; }
+  .lb-ops { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: .4rem; }
+  .lb-ops.lb-muchas { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  .lb-op { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .1rem; min-height: 50px; text-align: center; font: inherit; color: var(--texto); background: var(--tarjeta-2); border: 1px solid var(--linea); border-radius: 8px; padding: .4rem .5rem; cursor: pointer; min-width: 0; }
+  .lb-muchas .lb-op { flex-direction: row; justify-content: space-between; text-align: left; min-height: 44px; padding: .45rem .65rem; gap: .5rem; }
+  .lb-op-nombre { font-weight: 600; font-size: .86rem; line-height: 1.2; overflow-wrap: anywhere; color: inherit; }
+  .lb-cuota { font-weight: 700; font-size: 1rem; color: var(--acento); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .lb-op:not(:disabled):hover { border-color: var(--acento); }
   .lb-op:disabled { cursor: default; }
-  .lb-op-nombre { font-weight: 700; line-height: 1.2; min-width: 0; overflow-wrap: anywhere; }
-  .lb-muchas .lb-op-nombre { font-size: .92rem; }
-  .lb-cuota { font-family: "Anton", Impact, sans-serif; font-size: 1.25rem; color: var(--acento); font-variant-numeric: tabular-nums; }
-  .lb-muchas .lb-cuota { font-size: 1.05rem; }
-  .lb-op-meta { grid-column: 1 / -1; font-size: .74rem; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
-  .lb-op-barra { grid-column: 1 / -1; height: 4px; border-radius: 99px; background: var(--linea); overflow: hidden; }
-  .lb-op-barra i { display: block; height: 100%; background: var(--acento); border-radius: 99px; transition: width .4s; }
-  .lb-op.lb-mia { border-color: var(--acento); box-shadow: inset 0 0 0 1px var(--acento); }
-  .lb-op.lb-elegida { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); }
-  .lb-op.lb-elegida .lb-cuota, .lb-op.lb-elegida .lb-op-meta { color: var(--acento-texto); }
-  .lb-op.lb-elegida .lb-op-barra i { background: var(--acento-texto); }
+  .lb-op.lb-sel { background: var(--acento); border-color: var(--acento); color: var(--acento-texto); }
+  .lb-op.lb-sel .lb-cuota { color: var(--acento-texto); }
   .lb-op.lb-ganadora { border-color: var(--verde); box-shadow: inset 0 0 0 1px var(--verde); }
   .lb-op.lb-ganadora .lb-op-nombre::after { content: " ✓"; color: var(--verde); }
-  .lb-op.lb-perdedora { opacity: .55; }
-  .lb-marca-mia { position: absolute; top: 0; right: 0; background: var(--acento); color: var(--acento-texto); font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: .1rem .4rem; border-bottom-left-radius: 6px; }
-  .lb-resguardo { background: var(--fondo-2); border: 1px dashed var(--acento); border-radius: 10px; padding: .8rem .9rem; display: grid; gap: .6rem; }
-  .lb-resguardo p { margin: 0; font-size: .92rem; }
-  .lb-stake { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
-  .lb-stake input { width: 7rem; font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
-  .lb-rapido { font: inherit; font-size: .82rem; font-weight: 600; color: var(--texto); background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 999px; padding: .3rem .7rem; cursor: pointer; }
-  .lb-acciones { display: flex; flex-wrap: wrap; gap: .4rem; }
-  .lb-ganancia { font-weight: 700; color: var(--verde); }
-  .lb-mi { font-size: .9rem; padding: .55rem .8rem; border-radius: 8px; background: var(--tarjeta-2); }
-  .lb-mi.lb-gano { color: var(--verde); }
-  .lb-mi.lb-perdio { color: var(--rojo); }
-  .lb-quien { font-size: .88rem; }
+  .lb-op.lb-perdedora { opacity: .5; }
+  .lb-op.lb-elegible { outline: 2px dashed var(--verde); outline-offset: -2px; cursor: pointer; }
+  .lb-cuota-input { width: 5.2rem; padding: .25rem .4rem; text-align: center; font-weight: 700; }
+  .lb-pill { display: inline-flex; align-items: center; gap: .35rem; font-weight: 700; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+  .lb-pill::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .lb-pill.lb-ok { color: var(--verde); }
+  .lb-pill.lb-mal { color: var(--rojo); }
+  .lb-pill.lb-cerrada { color: var(--acento); }
+  .lb-pill.lb-gris { color: var(--texto-suave); }
+  .lb-quien { font-size: .84rem; }
   .lb-quien summary { cursor: pointer; color: var(--texto-suave); font-weight: 600; }
-  .lb-quien ul { list-style: none; padding: 0; margin: .5rem 0 0; display: grid; gap: .3rem; }
+  .lb-quien ul { list-style: none; padding: 0; margin: .45rem 0 0; display: grid; gap: .3rem; }
   .lb-quien li { display: flex; flex-wrap: wrap; gap: .3rem; align-items: baseline; }
-  .lb-chip { background: var(--tarjeta-2); border-radius: 999px; padding: .05rem .55rem; font-size: .8rem; }
-  .lb-admin-fila { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; padding-top: .7rem; border-top: 1px dashed var(--linea); font-size: .9rem; }
-  .lb-admin-fila .etiqueta { margin-right: .3rem; }
+  .lb-chip { background: var(--tarjeta-2); border-radius: 999px; padding: .05rem .55rem; font-size: .78rem; }
+  .lb-admin-fila { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; padding-top: .6rem; border-top: 1px dashed var(--linea); font-size: .85rem; }
+  .lb-admin-fila .lb-btn { font-size: .8rem; padding: .3rem .6rem; }
   .lb-bloque { background: var(--fondo-2); border: 1px solid var(--linea); border-radius: var(--radio); }
   .lb-bloque > summary { cursor: pointer; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .3rem 1rem; padding: .9rem 1.1rem; list-style: none; }
   .lb-bloque > summary::-webkit-details-marker { display: none; }
-  .lb-bloque > summary span { font-family: "Anton", Impact, sans-serif; font-size: 1.3rem; }
+  .lb-bloque > summary span { font-family: "Anton", Impact, sans-serif; font-size: 1.25rem; }
   .lb-bloque > summary span::before { content: "▸ "; color: var(--acento); }
   .lb-bloque[open] > summary span::before { content: "▾ "; }
   .lb-bloque > summary small { color: var(--texto-suave); font-size: .85rem; }
-  .lb-bloque-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: .6rem; padding: 0 .7rem .7rem; }
-  .lb-bloque-lista .lb-b-cuerpo { padding: .8rem .9rem .9rem; gap: .6rem; }
-  .lb-bloque-lista .lb-b-cuerpo h4 { font-size: 1.15rem; }
-  .lb-lateral { display: grid; gap: 1rem; position: sticky; top: 76px; }
+  .lb-bloque .lb-mercados { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); padding: 0 .7rem .7rem; gap: .5rem; }
+  .lb-mini .lb-op-nombre { font-size: .8rem; overflow-wrap: normal; }
+  .lb-mini .lb-mercado { padding: .65rem .75rem .75rem; gap: .45rem; }
+  .lb-mini .lb-m-cab h4 { font-size: .95rem; }
+  .lb-lateral { display: grid; gap: 1rem; position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; scrollbar-width: thin; padding-bottom: .5rem; }
+  .lb-slip { overflow: hidden; border-color: var(--acento); }
+  .lb-slip-cab { width: 100%; display: flex; align-items: center; gap: .6rem; font: inherit; color: var(--acento-texto); background: var(--acento); border: 0; padding: .7rem 1rem; text-align: left; cursor: default; }
+  .lb-slip-cab b { font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: 1.25rem; letter-spacing: .02em; }
+  .lb-badge { background: var(--acento-texto); color: var(--acento); border-radius: 999px; min-width: 1.5rem; padding: 0 .4rem; text-align: center; font-weight: 700; font-size: .85rem; }
+  .lb-slip-cuota { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lb-slip-flecha { display: none; }
+  .lb-slip-cuerpo { padding: .9rem 1rem 1rem; display: grid; gap: .75rem; }
+  .lb-slip-vacio { color: var(--texto-suave); font-size: .9rem; margin: 0; }
+  .lb-slip-aviso { margin: 0; color: var(--rojo); font-size: .86rem; font-weight: 600; }
+  .lb-sels { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
+  .lb-sels li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .5rem; align-items: center; background: var(--tarjeta-2); border-radius: 8px; padding: .5rem .3rem .5rem .7rem; }
+  .lb-sels b, .lb-t-sels b { display: block; font-size: .92rem; line-height: 1.2; }
+  .lb-sels small, .lb-t-sels small { display: block; color: var(--texto-suave); font-size: .76rem; line-height: 1.25; }
+  .lb-quitar { font: inherit; background: none; border: 0; color: var(--texto-suave); cursor: pointer; font-size: 1rem; padding: .3rem .45rem; border-radius: 6px; }
+  .lb-quitar:hover { color: var(--rojo); }
+  .lb-modo { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; background: var(--tarjeta-2); border-radius: 8px; padding: .25rem; }
+  .lb-modo button { font: inherit; font-weight: 600; font-size: .85rem; border: 0; border-radius: 6px; padding: .35rem; background: transparent; color: var(--texto-suave); cursor: pointer; }
+  .lb-modo button[aria-pressed="true"] { background: var(--tarjeta); color: var(--texto); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+  .lb-stake { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; }
+  .lb-stake input { width: 6rem; font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+  .lb-rapido { font: inherit; font-size: .82rem; font-weight: 600; color: var(--texto); background: var(--tarjeta-2); border: 1px solid var(--linea); border-radius: 999px; padding: .3rem .65rem; cursor: pointer; }
+  .lb-resumen { display: grid; gap: .25rem; font-size: .9rem; }
+  .lb-resumen div { display: flex; justify-content: space-between; gap: 1rem; }
+  .lb-resumen span { color: var(--texto-suave); }
+  .lb-resumen b { font-variant-numeric: tabular-nums; }
+  .lb-ganancia { font-weight: 700; color: var(--verde); }
+  .lb-tickets { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: .8rem; align-items: start; }
+  .lb-ticket { padding: .85rem 1rem; display: grid; gap: .6rem; border-left: 4px solid var(--linea); }
+  .lb-ticket.lb-t-ganada { border-left-color: var(--verde); }
+  .lb-ticket.lb-t-perdida { border-left-color: var(--rojo); }
+  .lb-ticket.lb-t-pendiente { border-left-color: var(--acento); }
+  .lb-ticket.lb-t-invalida { opacity: .6; }
+  .lb-t-cab { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+  .lb-t-sels { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+  .lb-t-sels li { display: grid; grid-template-columns: 1.1rem minmax(0, 1fr) auto; gap: .5rem; align-items: start; }
+  .lb-t-sels .lb-cuota { font-size: .92rem; }
+  .lb-ico-ok { color: var(--verde); font-weight: 700; }
+  .lb-ico-ko { color: var(--rojo); font-weight: 700; }
+  .lb-ico-pend { color: var(--texto-suave); font-weight: 700; }
+  .lb-t-pie { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3rem .8rem; font-size: .84rem; color: var(--texto-suave); border-top: 1px dashed var(--linea); padding-top: .55rem; }
+  .lb-t-pie b { color: var(--texto); font-variant-numeric: tabular-nums; }
+  .lb-t-pie b.lb-ganancia { color: var(--verde); }
+  .lb-t-fecha { color: var(--texto-suave); font-size: .74rem; }
   .lb-panel { padding: 1rem 1.1rem; display: grid; gap: .6rem; }
   .lb-panel h3 { font-size: 1.4rem; }
   .lb-panel > p { margin: 0; color: var(--texto-suave); font-size: .86rem; }
@@ -311,19 +339,28 @@
   .lb-vacio strong { display: block; font-family: "Anton", Impact, sans-serif; font-weight: 400; font-size: 1.4rem; color: var(--texto); margin-bottom: .3rem; }
   .lb-toast { position: fixed; left: 50%; bottom: calc(1rem + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--texto); color: var(--fondo); padding: .6rem 1rem; border-radius: 10px; font-weight: 600; font-size: .92rem; box-shadow: var(--sombra); z-index: 40; max-width: calc(100% - 32px); }
   @media (max-width: 900px) {
-    .lb-grid { grid-template-columns: minmax(0, 1fr); }
-    .lb-lateral { position: static; }
+    .lb-grid, .lb-cartera { grid-template-columns: minmax(0, 1fr); }
+    .lb-lateral { position: static; max-height: none; overflow: visible; }
+    /* En móvil el boleto es una barra fija abajo que se despliega */
+    .lb-slip { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; border-radius: 16px 16px 0 0; max-height: 85vh; overflow-y: auto; box-shadow: 0 -10px 30px rgba(0,0,0,.4); padding-bottom: env(safe-area-inset-bottom); }
+    .lb-slip.lb-slip-vacia { display: none; }
+    .lb-slip-cab { cursor: pointer; padding: .85rem 1rem; }
+    .lb-slip-flecha { display: inline; }
+    .lb-slip:not(.lb-abierto) .lb-slip-cuerpo { display: none; }
+    body.lb-con-boleto { padding-bottom: 64px; }
+    body.lb-con-boleto .lb-toast { bottom: calc(76px + env(safe-area-inset-bottom)); }
   }
   @media (max-width: 480px) {
     .lb-nums strong { font-size: 1.45rem; }
-    .lb-opciones, .lb-opciones.lb-muchas { grid-template-columns: 1fr 1fr; }
-    .lb-b-cuerpo h4 { font-size: 1.2rem; }
     .lb-apodo { flex-wrap: wrap; }
     .lb-apodo input { flex-basis: 100%; }
     .lb-apodo .lb-btn { flex: 1; }
-    .lb-bloque-lista { grid-template-columns: 1fr; padding: 0 .5rem .5rem; }
+    .lb-mercados, .lb-bloque .lb-mercados { grid-template-columns: minmax(0, 1fr); }
+    .lb-bloque .lb-mercados { padding: 0 .5rem .5rem; }
+    .lb-ops.lb-muchas { grid-template-columns: 1fr 1fr; }
+    .lb-muchas .lb-op { padding: .4rem .5rem; }
+    .lb-tickets { grid-template-columns: minmax(0, 1fr); }
   }
-  @media (prefers-reduced-motion: reduce) { .lb-op-barra i { transition: none; } }
   /* Botón de LaboralesBet en la portada: siempre amarillo y oscuro, porque va encima de la foto */
   .bet-portada { margin-top: 1rem; display: inline-flex; align-items: center; gap: .9rem; max-width: 100%; background: #ffd23f; color: #10301f; text-decoration: none; border-radius: 12px; padding: .7rem 1rem; box-shadow: 0 8px 24px rgba(0,0,0,.35); transition: transform .15s; }
   .bet-portada:hover { transform: translateY(-2px); }
@@ -430,7 +467,7 @@
       <div class="resumen" id="resumen"></div>
       <a class="bet-portada" href="#laboralesbet">
         <span class="bet-portada-marca">Laborales<b>Bet</b></span>
-        <span class="bet-portada-texto">Apuesta con fichas al próximo partido<small>Sin dinero · 1.000 fichas por partido</small></span>
+        <span class="bet-portada-texto">Apuesta al próximo partido<small>Cuotas y combinadas · sin dinero</small></span>
         <span class="bet-portada-flecha" aria-hidden="true">→</span>
       </a>
     </div>
@@ -491,55 +528,57 @@
 
   <section id="laboralesbet">
     <div class="cabecera-seccion">
-      <div><h2>Laborales<span class="lb-bet">Bet</span></h2><p class="subtitulo">Apuestas de broma entre la plantilla. Sin dinero: 1.000 fichas por partido.</p></div>
+      <div><h2>Laborales<span class="lb-bet">Bet</span></h2><p class="subtitulo">Apuestas de broma con cuotas y combinadas. Sin dinero: empiezas con 1.000 fichas y lo que ganes se va acumulando.</p></div>
     </div>
     <div id="lb" class="lb">
       <div class="lb-aviso" id="lb-aviso">Cargando apuestas…</div>
-      <div class="lb-grid">
-        <div class="lb-main">
-          <div class="tarjeta lb-cartera" aria-live="polite">
-            <div class="lb-nums">
-              <div class="lb-grande"><strong id="lb-w-saldo">1.000</strong><span>Fichas libres</span></div>
-              <div><strong id="lb-w-beneficio">0</strong><span>Beneficio total</span></div>
-              <div><strong id="lb-w-aciertos">0/0</strong><span>Aciertos</span></div>
-            </div>
-            <p class="lb-partido" id="lb-w-partido">Para el próximo partido</p>
-            <form class="lb-apodo" id="lb-form-apodo">
-              <input id="lb-apodo" maxlength="24" placeholder="Tu apodo de apostador" aria-label="Tu apodo de apostador" autocomplete="off">
-              <button class="lb-btn lb-primario" id="lb-apodo-btn" type="submit">Guardar apodo</button>
-            </form>
-          </div>
-          <div class="filtros" id="lb-filtros" role="toolbar" aria-label="Filtrar apuestas"></div>
-          <div id="lb-lista"></div>
+      <div class="tarjeta lb-cartera" aria-live="polite">
+        <div class="lb-nums">
+          <div class="lb-grande"><strong id="lb-w-saldo">—</strong><span>Saldo</span></div>
+          <div><strong id="lb-w-juego">0</strong><span>En juego</span></div>
+          <div><strong id="lb-w-beneficio">0</strong><span>Beneficio</span></div>
         </div>
+        <form class="lb-apodo" id="lb-form-apodo">
+          <input id="lb-apodo" maxlength="24" placeholder="Tu apodo de apostador" aria-label="Tu apodo de apostador" autocomplete="off">
+          <button class="lb-btn lb-primario" id="lb-apodo-btn" type="submit">Guardar apodo</button>
+        </form>
+      </div>
+      <div class="filtros lb-vistas" id="lb-vistas" role="toolbar" aria-label="Secciones de LaboralesBet"></div>
+      <div class="lb-grid">
+        <div class="lb-main" id="lb-main"></div>
         <aside class="lb-lateral">
+          <div class="tarjeta lb-slip lb-slip-vacia" id="lb-slip"></div>
           <div class="tarjeta lb-panel">
             <h3>Clasificación</h3>
-            <p>Fichas ganadas o perdidas sumando todos los partidos. Lo que está en juego aún no cuenta.</p>
+            <p>Saldo más lo que tienes en juego. Todos empezáis con 1.000 fichas.</p>
             <ol class="lb-ranking" id="lb-ranking"></ol>
           </div>
           <div class="tarjeta lb-panel" id="lb-admin" hidden>
             <h3>Organizador</h3>
             <p id="lb-gen-texto"></p>
-            <button class="lb-btn lb-primario" id="lb-gen" type="button">Crear apuestas del partido</button>
+            <button class="lb-btn lb-primario" id="lb-gen" type="button">Crear mercados del partido</button>
+            <p>Las cuotas salen solas según la posición y los goles de cada uno. Puedes cambiarlas con el botón «Cuotas» de cada mercado mientras esté abierto.</p>
             <form class="lb-crear" id="lb-form-crear">
-              <h4>Nueva apuesta a mano</h4>
+              <h4>Nuevo mercado a mano</h4>
               <label for="lb-c-partido">Partido<input id="lb-c-partido" list="lb-lista-partidos" maxlength="80" required placeholder="Laborales FC vs Derecho"></label>
               <datalist id="lb-lista-partidos"></datalist>
-              <label for="lb-c-titulo">Pregunta<input id="lb-c-titulo" maxlength="120" required placeholder="¿Quién llega tarde al entreno?"></label>
+              <label for="lb-c-titulo">Pregunta<input id="lb-c-titulo" maxlength="120" required placeholder="¿Quién llega tarde al calentamiento?"></label>
               <label for="lb-c-desc">Detalle (opcional)<input id="lb-c-desc" maxlength="200"></label>
-              <label for="lb-c-opciones">Opciones, una por línea<textarea id="lb-c-opciones" required placeholder="Opción 1&#10;Opción 2"></textarea></label>
-              <label for="lb-c-cierre">Se cierra (opcional)<input id="lb-c-cierre" type="datetime-local"></label>
-              <button class="lb-btn lb-primario" type="submit">Publicar apuesta</button>
+              <label for="lb-c-opciones">Opciones con su cuota, una por línea<textarea id="lb-c-opciones" required placeholder="Emi | 2,5&#10;Gaizka | 3&#10;Nadie | 1,8"></textarea></label>
+              <label for="lb-c-cierre">Se cierra (si no, a la hora del partido)<input id="lb-c-cierre" type="datetime-local"></label>
+              <button class="lb-btn lb-primario" type="submit">Publicar mercado</button>
             </form>
           </div>
           <div class="tarjeta lb-panel">
             <h3>Cómo funciona</h3>
             <ol class="lb-reglas">
               <li>Ponte un apodo. No hace falta registrarse ni hay dinero de por medio.</li>
-              <li>En cada partido tienes 1.000 fichas para repartir entre sus apuestas, una opción por pregunta. Puedes cambiarla mientras siga abierta.</li>
-              <li>Las cuotas salen de lo que apuesta la gente: cuanta menos gente va a una opción, más paga.</li>
-              <li>Al acabar el partido, los que aciertan se reparten el bote. Si nadie acierta, se devuelven las fichas.</li>
+              <li>Empiezas con 1.000 fichas. Lo que ganas se suma a tu saldo y lo que pierdes se resta, partido tras partido.</li>
+              <li>Toca una cuota para añadirla al boleto. Con una selección haces una apuesta simple. Con varias de mercados distintos haces una combinada: las cuotas se multiplican, pero tienes que acertarlas todas.</li>
+              <li>La cuota se fija al apostar. Si aciertas cobras fichas × cuota.</li>
+              <li>Si se anula un mercado, esa selección cuenta como cuota 1.</li>
+              <li>Las apuestas se cierran al empezar el partido y no se pueden retirar.</li>
+              <li>Los que apostasteis en el amistoso contra RESA ya tenéis sumado lo que ganasteis ese día.</li>
               <li>Tu cuenta se queda guardada en este móvil o navegador. Si entras desde otro, empezarás de cero.</li>
             </ol>
           </div>
@@ -597,8 +636,8 @@ const jugadores = [
   { id: "a-escalona",  dorsal: 3,    nombre: "A. Escalona",    posicion: "Lateral izquierdo", partidos: 0, goles: 0, asistencias: 0, foto: "fotos/a-escalona.jpg" },
   { id: "nico",        dorsal: 20,   nombre: "Nico",           posicion: "Lateral izquierdo", partidos: 0, goles: 0, asistencias: 0 },
   { id: "manuel-g",    dorsal: 30,   nombre: "Manuel García",  posicion: "Lateral izquierdo", partidos: 0, goles: 0, asistencias: 0, foto: "fotos/manuel-g.jpg" },
-  { id: "samu",        dorsal: 6,    nombre: "Samu",           posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
-  { id: "antonio-mc",  dorsal: 22,   nombre: "Antonio",        posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
+  { id: "samu",        dorsal: 6,    nombre: "Samu",           posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0, foto: "fotos/samu.jpg" },
+  { id: "antonio-mc",  dorsal: 22,   nombre: "Antonio",        posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0, foto: "fotos/antonio-mc.jpg" },
   { id: "tito",        dorsal: 11,   nombre: "Tito",           posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0 },
   { id: "lorenzo",     dorsal: 8,    nombre: "Lorenzo",        posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0, foto: "fotos/lorenzo.jpg" },
   { id: "francisco",   dorsal: 14,   nombre: "Francisco Caro", posicion: "Centrocampista",    partidos: 0, goles: 0, asistencias: 0, foto: "fotos/francisco.jpg" },
@@ -622,10 +661,19 @@ const cuerpoTecnico = [
   { nombre: "Didac Porras",  cargo: "Community Manager" },
 ];
 
-// Una línea por partido. Si aún no se ha jugado, deja "nuestros" y "suyos" en null. Ejemplo:
+// Una línea por partido. Si aún no se ha jugado, deja "nuestros" y "suyos" en null.
+// Al jugarse, opcional: "asistentes" (ids, suman PJ), "titulares" (ids), "goles" (un id por gol; repite el id si marcó varios), "asistencias" (igual que goles)
+// y "encajados" (goles encajados por cada portero, p. ej. { ruben: 1 }). Ejemplo:
 // { fecha: "2026-11-05", hora: "18:30", rival: "Nombre rival", competicion: "Trofeo Rector", local: true, campo: "Campo Municipal", nuestros: null, suyos: null },
 const partidos = [
-  { fecha: "2026-11-06", hora: "22:00", rival: "Residencia Universitaria Carlos V (RESA)", competicion: "Amistoso", local: true, campo: "Cartuja", nuestros: null, suyos: null },
+  { fecha: "2026-11-06", hora: "22:00", rival: "Residencia Universitaria Carlos V (RESA)", competicion: "Amistoso", local: true, campo: "Cartuja", nuestros: 3, suyos: 2,
+    asistentes: ["ruben", "manuel", "alejandro", "gaizka", "emi", "d-escalona", "david", "a-escalona", "manuel-g",
+      "samu", "antonio-mc", "lorenzo", "francisco", "alonso", "dennis", "crispin", "zander"],
+    titulares: ["ruben", "alejandro", "emi", "d-escalona", "a-escalona", "manuel-g",
+      "francisco", "alonso", "lorenzo", "dennis", "crispin"],
+    goles: ["crispin", "crispin", "crispin"],
+    asistencias: ["lorenzo"],
+    encajados: { ruben: 1, manuel: 1 } },
   { fecha: "2026-11-12", hora: "17:15", rival: "Facultad de Derecho", competicion: "Trofeo Rector", local: true, campo: "Cartuja", nuestros: null, suyos: null },
   { fecha: "2026-11-25", hora: "17:15", rival: "Facultad de Políticas", competicion: "Trofeo Rector", local: true, campo: "Cartuja", nuestros: null, suyos: null },
   { fecha: "2026-12-03", hora: "15:30", rival: "CM Inmaculada", competicion: "Trofeo Rector", local: true, campo: "Cartuja", nuestros: null, suyos: null },
@@ -691,6 +739,21 @@ const marcadorTexto = p => p.local ? `${p.nuestros} – ${p.suyos}` : `${p.suyos
 const jugados = partidos.filter(jugado).sort((a, b) => b.fecha.localeCompare(a.fecha));
 const pendientes = partidos.filter(p => !jugado(p)).sort((a, b) => a.fecha.localeCompare(b.fecha));
 
+// Suma a cada jugador los partidos, titularidades y goles apuntados en los partidos jugados
+jugadores.forEach(j => j.titular = j.titular ?? 0);
+jugados.forEach(p => {
+  (p.asistentes || []).forEach(id => porId[id] && porId[id].partidos++);
+  (p.titulares || []).forEach(id => porId[id] && porId[id].titular++);
+  (p.goles || []).forEach(id => porId[id] && porId[id].goles++);
+  (p.asistencias || []).forEach(id => porId[id] && porId[id].asistencias++);
+  Object.entries(p.encajados || {}).forEach(([id, n]) => porId[id] && (porId[id].encajados = (porId[id].encajados || 0) + n));
+});
+const listaGoles = (p, campo = "goles") => {
+  const n = {};
+  (p[campo] || []).forEach(id => n[id] = (n[id] || 0) + 1);
+  return Object.entries(n).map(([id, c]) => `${porId[id] ? porId[id].nombre : id}${c > 1 ? ` (${c})` : ""}`).join(", ");
+};
+
 // ---------- Portada ----------
 function pintarPortada() {
   const r = { V: 0, E: 0, D: 0 };
@@ -737,8 +800,8 @@ function pintarPlantilla() {
         <div class="cuerpo">
           <div class="nombre">${j.nombre}</div><div class="pos">${j.posicion}</div>
           <div class="stats">${(j.posicion === "Portero"
-            ? [[j.partidos, "PJ"], [j.encajados ?? 0, "Encaj."], [j.penaltis ?? 0, "Pen. par."]]
-            : [[j.partidos, "PJ"], [j.goles, "Goles"], [j.asistencias, "Asist."]]
+            ? [[j.partidos, "PJ"], [j.titular, "Tit."], [j.encajados ?? 0, "Encaj."], [j.penaltis ?? 0, "Pen. par."]]
+            : [[j.partidos, "PJ"], [j.titular, "Tit."], [j.goles, "Goles"], [j.asistencias, "Asist."]]
           ).map(([v, t]) => `<div><strong>${v}</strong><span>${t}</span></div>`).join("")}</div>
         </div>
       </article>`).join("")}</div></div>`;
@@ -765,7 +828,9 @@ function pintarPartidos() {
     return `
     <div class="partido">
       <div class="dia"><strong>${aFecha(p.fecha).getDate()}</strong><span>${aFecha(p.fecha).toLocaleDateString("es-ES", { month: "short" })}</span></div>
-      <div><div class="rival">${casa} – ${fuera}</div><div class="detalle">${p.competicion ? `<span class="chip">${p.competicion}</span> ` : ""}${p.campo}</div></div>
+      <div><div class="rival">${casa} – ${fuera}</div><div class="detalle">${p.competicion ? `<span class="chip">${p.competicion}</span> ` : ""}${p.campo}</div>
+        ${p.goles && p.goles.length ? `<div class="detalle">⚽ ${listaGoles(p)}${p.asistencias && p.asistencias.length ? ` · Asist.: ${listaGoles(p, "asistencias")}` : ""}</div>` : ""}
+        ${p.titulares && p.titulares.length ? `<div class="detalle">Titulares: ${p.titulares.map(id => porId[id] ? porId[id].nombre : id).join(", ")}</div>` : ""}</div>
       <div class="marcador">${marcadorTexto(p)}<span class="res ${resultado(p)}">${resultado(p)}</span></div>
     </div>`;
   }).join("") : `<p class="vacio">Aún no se ha jugado ningún partido.</p>`;
